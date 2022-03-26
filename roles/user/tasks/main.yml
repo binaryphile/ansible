@@ -7,6 +7,7 @@
     mode:   '755'
   loop:
     - .config/liquidprompt
+    - .config/ranger
     - tmp
     - scratch
 
@@ -24,9 +25,10 @@
     - { src: liquidprompt/liquidpromptrc, path: .config/liquidpromptrc            }
     - { src: ssh/config,                  path: .ssh/config                       }
     - { src: tmux.conf,                   path: .tmux.conf                        }
+    - { src: ranger/rc.conf,              path: .config/ranger/rc.conf            }
 
 - name: context link
   file:
-    src:    contexts/office/macos
+    src:    contexts/home/crostini
     path:   $HOME/dotfiles/context
     state:  link
