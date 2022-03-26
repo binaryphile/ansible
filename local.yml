@@ -10,5 +10,7 @@
       - git
       - silversearcher-ag
       - htop
+      - build-essential
+      - software-properties-common
   - import_role:
       name: user
