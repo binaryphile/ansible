@@ -8,6 +8,7 @@
   loop:
     - .config/liquidprompt
     - tmp
+    - scratch
 
 - name: dotfile links
   file:
@@ -18,16 +19,14 @@
   loop:
     - { src: bash/init.bash,              path: .bash_profile                     }
     - { src: bash/init.bash,              path: .bashrc                           }
-    - { src: bash/init.bash,              path: .profile                          }
-    - { src: bash/dir_colors,             path: .dir_colors                       }
     - { src: gitconfig,                   path: .gitconfig                        }
     - { src: liquidprompt/liquid.theme,   path: .config/liquidprompt/liquid.theme }
     - { src: liquidprompt/liquidpromptrc, path: .config/liquidpromptrc            }
-    - { src: ssh/authorized_keys,         path: .ssh/authorized_keys              }
     - { src: ssh/config,                  path: .ssh/config                       }
+    - { src: tmux.conf,                   path: .tmux.conf                        }
 
 - name: context link
   file:
-    src:    contexts/home/original
+    src:    contexts/office/macos
     path:   $HOME/dotfiles/context
     state:  link
