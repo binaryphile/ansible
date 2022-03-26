@@ -1,5 +1,10 @@
 - hosts: localhost
   become: true
   tasks:
-  - name: Install neovim
-    apt: name=neovim
+  - name: Install programs
+    apt: name={{ item }}
+    loop:
+      - neovim
+      - ranger
+      - tmux
+      - git
