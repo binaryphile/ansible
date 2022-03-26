@@ -9,3 +9,5 @@
       - tmux
       - git
       - silversearcher-ag
+  - import_role:
+      name: user
