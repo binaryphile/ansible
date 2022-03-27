@@ -11,6 +11,6 @@
       - silversearcher-ag
       - htop
       - build-essential
-      - software-properties-common
+      - gnupg2
   - import_role:
       name: user
