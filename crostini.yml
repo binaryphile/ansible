@@ -1,13 +1,42 @@
 - hosts: localhost
   tasks:
-  - name: Install programs
-    become: true
-    apt: name={{ item }}
+
+  - name: clone dotfiles
+    git:
+      repo: https://github.com/binaryphile/dotfiles.git
+      dest: $HOME/dotfiles
+      
+  - name: context link
+    file:
+      src:    contexts/home/crostini
+      path:   $HOME/dotfiles/context
+      state:  link
+      
+  - name: dotfile links
+    file:
+      src:    $HOME/dotfiles/{{ item.src }}
+      path:   $HOME/{{ item.path }}
+      state:  link
+      force:  yes
     loop:
-      - neovim
-      - ranger
-      - tmux
-      - silversearcher-ag
-      - htop
-  - import_role:
-      name: user
+      - { src: bash/init.bash,              path: .bash_profile                     }
+      - { src: bash/init.bash,              path: .bashrc                           }
+      - { src: gitconfig,                   path: .gitconfig                        }
+      - { src: liquidprompt/liquid.theme,   path: .config/liquidprompt/liquid.theme }
+      - { src: liquidprompt/liquidpromptrc, path: .config/liquidpromptrc            }
+      - { src: ssh/config,                  path: .ssh/config                       }
+      - { src: tmux.conf,                   path: .tmux.conf                        }
+      - { src: ranger/rc.conf,              path: .config/ranger/rc.conf            }
+  
+    - name: install programs
+        become: true
+        apt: name={{ item }}
+        loop:
+          - neovim
+          - ranger
+          - tmux
+          - silversearcher-ag
+          - htop
+      
+    - import_role:
+        name: user
