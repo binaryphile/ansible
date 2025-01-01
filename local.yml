@@ -7,13 +7,7 @@
       - neovim
       - ranger
       - tmux
-      - git
       - silversearcher-ag
       - htop
-      - build-essential
-      - gnupg2
-      - docker-ce
-      - docker-ce-cli
-      - containerd.io
   - import_role:
       name: user
