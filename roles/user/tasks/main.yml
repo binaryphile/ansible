@@ -1,10 +1,5 @@
 ---
 
-- name: clone dotfiles
-  git:
-    repo: https://github.com/binaryphile/dotfiles.git
-    dest: $HOME/dotfiles
-
 - name: directories
   file:
     path:   $HOME/{{ item }}
@@ -14,26 +9,3 @@
     - .config/liquidprompt
     - .config/ranger
     - tmp
-    - scratch
-
-- name: dotfile links
-  file:
-    src:    $HOME/dotfiles/{{ item.src }}
-    path:   $HOME/{{ item.path }}
-    state:  link
-    force:  yes
-  loop:
-    - { src: bash/init.bash,              path: .bash_profile                     }
-    - { src: bash/init.bash,              path: .bashrc                           }
-    - { src: gitconfig,                   path: .gitconfig                        }
-    - { src: liquidprompt/liquid.theme,   path: .config/liquidprompt/liquid.theme }
-    - { src: liquidprompt/liquidpromptrc, path: .config/liquidpromptrc            }
-    - { src: ssh/config,                  path: .ssh/config                       }
-    - { src: tmux.conf,                   path: .tmux.conf                        }
-    - { src: ranger/rc.conf,              path: .config/ranger/rc.conf            }
-
-- name: context link
-  file:
-    src:    contexts/home/crostini
-    path:   $HOME/dotfiles/context
-    state:  link
