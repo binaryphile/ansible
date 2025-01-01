@@ -1,5 +1,10 @@
 ---
 
+- name: clone dotfiles
+  git:
+    repo: https://github.com/binaryphile/dotfiles.git
+    dest: $HOME/dotfiles
+
 - name: directories
   file:
     path:   $HOME/{{ item }}
