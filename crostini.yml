@@ -36,14 +36,14 @@
         - { src: ssh/config,                  path: .ssh/config                       }
         - { src: tmux.conf,                   path: .tmux.conf                        }
         - { src: ranger/rc.conf,              path: .config/ranger/rc.conf            }
-    
-      - name: install programs
-          become: true
-          apt: name={{ item }}
-          loop:
-            - neovim
-            - ranger
-            - tmux
-            - silversearcher-ag
-            - htop
+  
+    - name: install programs
+        become: true
+        apt: name={{ item }}
+        loop:
+          - neovim
+          - ranger
+          - tmux
+          - silversearcher-ag
+          - htop
     
