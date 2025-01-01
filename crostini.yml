@@ -38,12 +38,12 @@
         - { src: ranger/rc.conf,              path: .config/ranger/rc.conf            }
   
     - name: install programs
-        become: true
-        apt: name={{ item }}
-        loop:
-          - neovim
-          - ranger
-          - tmux
-          - silversearcher-ag
-          - htop
+      become: true
+      apt: name={{ item }}
+      loop:
+        - neovim
+        - ranger
+        - tmux
+        - silversearcher-ag
+        - htop
     
