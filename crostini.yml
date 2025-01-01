@@ -34,6 +34,7 @@
         state:  link
         force:  yes
       loop:
+        - { src: bash/init.bash,              path: .profile                          }
         - { src: bash/init.bash,              path: .bash_profile                     }
         - { src: bash/init.bash,              path: .bashrc                           }
         - { src: gitconfig,                   path: .gitconfig                        }
