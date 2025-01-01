@@ -10,6 +10,12 @@
         - .config/ranger
         - tmp
       
+    - name: ssh directory
+      file:
+        path:   $HOME/.ssh
+        state:  directory
+        mode:   '700'
+
     - name: clone dotfiles
       git:
         repo: https://github.com/binaryphile/dotfiles.git
