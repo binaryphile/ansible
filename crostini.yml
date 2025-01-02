@@ -54,7 +54,6 @@
         - silversearcher-ag
         - htop
         - highlight
-        - tree
   
     - name: clone vim configuration
       git:
@@ -66,4 +65,38 @@
         url: https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
         dest: $HOME/.local/share/nvim/site/autoload/plug.vim
         mode: '644'
+        
+    - name: download nix install script
+      get_url:
+        url: https://install.lix.systems/lix
+        dest: /tmp/lix-install.sh
+        mode: '0755'
+    
+    - name: run nix install script
+      shell: sh -s -- install
+      args:
+        chdir: /tmp
+        executable: /bin/bash
+      when: not nix_installed.stdout
+    
+    - name: verify nix installation
+      command: nix-env --version
+      register: nix_installed
+      failed_when: "'command not found' in nix_installed.stderr"
+    
+    - name: clean up nix install script
+      file:
+        path: /tmp/lix-install.sh
+        state: absent
 
+    - name: add home-manager channel
+      command: >
+        nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
+      args:
+        creates: $HOME/.nix-defexpr/channels/home-manager
+    
+    - name: update nix channels
+      command: nix-channel --update
+
+    - name: install home-manager
+      command: "nix-shell '<home-manager>' -A install"
