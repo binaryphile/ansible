@@ -17,7 +17,6 @@
         - .config/liquidprompt
         - .config/ranger
         - .config/nixpkgs
-        - tmp
         - .local/share/nvim/site/autoload
 
     - name: Set up SSH directory
