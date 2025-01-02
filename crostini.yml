@@ -106,3 +106,10 @@
       command: "nix-shell '<home-manager>' -A install"
       args:
         creates: $HOME/.config/home-manager
+
+    - name: home-manager link
+      file:
+        src:    $HOME/dotfiles/home.nix
+        path:   $HOME/.config/home-manager/home.nix
+        state:  link
+        force:  yes
