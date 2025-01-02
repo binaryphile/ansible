@@ -1,4 +1,7 @@
 - hosts: localhost
+  environment:
+    PATH: "{{ ansible_env.PATH }}:/nix/var/nix/profiles/default/bin"
+
   tasks:
     - name: directories
       file:
@@ -90,14 +93,14 @@
 
     - name: add home-manager channel
       command: >
-        /nix/var/nix/profiles/default/bin/nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
+        nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
       args:
         creates: $HOME/.nix-channels
         
     - name: update nix channels
-      command: /nix/var/nix/profiles/default/bin/nix-channel --update
+      command: nix-channel --update
       args:
         creates: $HOME/.nix-defexpr/channels/home-manager
 
     - name: install home-manager
-      command: "/nix/var/nix/profiles/default/bin/nix-shell '<home-manager>' -A install"
+      command: "nix-shell '<home-manager>' -A install"
