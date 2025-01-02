@@ -87,11 +87,10 @@
       file:
         path: /tmp/lix-install.sh
         state: absent
-      when: nix_installed.failed
 
     - name: add home-manager channel
       command: >
-        nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
+        /nix/var/nix/profiles/default/bin/nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
       args:
         creates: $HOME/.nix-defexpr/channels/home-manager
     
