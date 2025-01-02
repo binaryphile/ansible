@@ -3,40 +3,40 @@
     PATH: "{{ ansible_env.PATH }}:/nix/var/nix/profiles/default/bin"
 
   tasks:
-    - name: directories
+    - name: Create required directories
       file:
-        path:   $HOME/{{ item }}
-        state:  directory
-        mode:   '755'
+        path: "$HOME/{{ item }}"
+        state: directory
+        mode: '0755'
       loop:
         - .config/liquidprompt
         - .config/ranger
         - tmp
         - .local/share/nvim/site/autoload
-      
-    - name: ssh directory
-      file:
-        path:   $HOME/.ssh
-        state:  directory
-        mode:   '700'
 
-    - name: clone dotfiles
+    - name: Set up SSH directory
+      file:
+        path: "$HOME/.ssh"
+        state: directory
+        mode: '0700'
+
+    - name: Clone dotfiles repository
       git:
         repo: https://github.com/binaryphile/dotfiles.git
-        dest: $HOME/dotfiles
-        
-    - name: context link
+        dest: "$HOME/dotfiles"
+
+    - name: Link context file
       file:
-        src:    contexts/work/crostini-bullseye
-        path:   $HOME/dotfiles/context
-        state:  link
-        
-    - name: dotfile links
+        src: "contexts/work/crostini-bullseye"
+        path: "$HOME/dotfiles/context"
+        state: link
+
+    - name: Create dotfile symlinks
       file:
-        src:    $HOME/dotfiles/{{ item.src }}
-        path:   $HOME/{{ item.path }}
-        state:  link
-        force:  yes
+        src: "$HOME/dotfiles/{{ item.src }}"
+        path: "$HOME/{{ item.path }}"
+        state: link
+        force: yes
       loop:
         - { src: bash/init.bash,              path: .profile                          }
         - { src: bash/init.bash,              path: .bash_profile                     }
@@ -48,9 +48,10 @@
         - { src: tmux.conf,                   path: .tmux.conf                        }
         - { src: ranger/rc.conf,              path: .config/ranger/rc.conf            }
 
-    - name: install programs
+    - name: Install required programs
       become: true
-      apt: name={{ item }}
+      apt:
+        name: "{{ item }}"
       loop:
         - neovim
         - ranger
@@ -58,64 +59,64 @@
         - silversearcher-ag
         - htop
         - highlight
-  
-    - name: clone vim configuration
+
+    - name: Clone vim configuration repository
       git:
         repo: https://github.com/binaryphile/dot_vim.git
-        dest: $HOME/.config/nvim
+        dest: "$HOME/.config/nvim"
 
-    - name: install vim-plug
+    - name: Install vim-plug plugin manager
       get_url:
         url: https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-        dest: $HOME/.local/share/nvim/site/autoload/plug.vim
-        mode: '644'
+        dest: "$HOME/.local/share/nvim/site/autoload/plug.vim"
+        mode: '0644'
 
-    - name: check if nix is already installed
+    - name: Check if Nix is already installed
       command: nix-env --version
       register: nix_installed
       ignore_errors: yes
-    
-    - name: download nix install script
-      get_url:
-        url: https://install.lix.systems/lix
-        dest: /tmp/lix-install.sh
-        mode: '0755'
-      when: nix_installed.failed
-    
-    - name: run nix install script
-      command: /tmp/lix-install.sh install --no-confirm
-      when: nix_installed.failed
-    
-    - name: clean up nix install script
-      file:
-        path: /tmp/lix-install.sh
-        state: absent
 
-    - name: add home-manager channel
+    - name: Download and run Nix installation script if needed
+      block:
+        - get_url:
+            url: https://install.lix.systems/lix
+            dest: /tmp/lix-install.sh
+            mode: '0755'
+
+        - command: /tmp/lix-install.sh install --no-confirm
+
+        - file:
+            path: /tmp/lix-install.sh
+            state: absent
+      when: nix_installed.failed
+
+    - name: Add home-manager channel
       command: >
         nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
       args:
-        creates: $HOME/.nix-channels
-        
-    - name: update nix channels
+        creates: "$HOME/.nix-channels"
+
+    - name: Update Nix channels
       command: nix-channel --update
       args:
-        creates: $HOME/.nix-defexpr/channels/home-manager
+        creates: "$HOME/.nix-defexpr/channels/home-manager"
 
-    - name: install home-manager
+    - name: Install home-manager
       command: "nix-shell '<home-manager>' -A install"
       args:
-        creates: $HOME/.config/home-manager
+        creates: "$HOME/.config/home-manager"
 
-    - name: nix links
+    - name: Create Nix configuration symlinks
       file:
-        src:    $HOME/dotfiles/{{ item.src }}
-        path:   $HOME/{{ item.path }}
-        state:  link
-        force:  yes
+        src: "$HOME/dotfiles/{{ item.src }}"
+        path: "$HOME/{{ item.path }}"
+        state: link
+        force: yes
       loop:
         - { src: home.nix,   path: .config/home-manager/home.nix  }
         - { src: config.nix, path: .config/nixpkgs/config.nix     }
 
-    - name: install with home-manager
+    - name: Apply home-manager configuration
       command: home-manager switch
+      register: home_manager_result
+      changed_when: "'Creating profile generation' in home_manager_result.stdout"
