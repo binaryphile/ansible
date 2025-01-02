@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 sudo bash -c "
-  apt update -qq &&
-  apt upgrade -y &&
-  apt install -y ansible &&
-  apt autoremove &&
+  apt update -qq
+  apt upgrade -y
+  apt install -y ansible
+  apt autoremove
   apt clean
 "
 ansible-pull -U https://github.com/binaryphile/ansible crostini.yml
