@@ -1,11 +1,1 @@
----
 
-- name: directories
-  file:
-    path:   $HOME/{{ item }}
-    state:  directory
-    mode:   '755'
-  loop:
-    - .config/liquidprompt
-    - .config/ranger
-    - tmp
