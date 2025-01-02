@@ -72,23 +72,23 @@
         mode: '0644'
 
     - name: Check if Nix is already installed
-      command: nix-env --version
+      stat:
+        path: "/nix/var/nix/profiles/default/bin/nix-env"
       register: nix_installed
-      ignore_errors: yes
-
+    
     - name: Download and run Nix installation script if needed
       block:
         - get_url:
             url: https://install.lix.systems/lix
             dest: /tmp/lix-install.sh
             mode: '0755'
-
+    
         - command: /tmp/lix-install.sh install --no-confirm
-
+    
         - file:
             path: /tmp/lix-install.sh
             state: absent
-      when: nix_installed.failed
+      when: not nix_installed.stat.exists
 
     - name: Add home-manager channel
       command: >
