@@ -86,7 +86,7 @@
       command: /tmp/lix-install.sh install --no-confirm
       when: nix_installed.failed
     
-    - name: Clean up Nix install script
+    - name: clean up nix install script
       file:
         path: /tmp/lix-install.sh
         state: absent
@@ -104,3 +104,5 @@
 
     - name: install home-manager
       command: "nix-shell '<home-manager>' -A install"
+      args:
+        creates: $HOME/.config/home-manager
