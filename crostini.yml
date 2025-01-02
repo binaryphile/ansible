@@ -11,6 +11,7 @@
       loop:
         - .config/liquidprompt
         - .config/ranger
+        - .config/nixpkgs
         - tmp
         - .local/share/nvim/site/autoload
 
