@@ -43,7 +43,12 @@
         - { src: ssh/config,                  path: .ssh/config                       }
         - { src: tmux.conf,                   path: .tmux.conf                        }
         - { src: ranger/rc.conf,              path: .config/ranger/rc.conf            }
-  
+
+    - name: clone vim configuration
+      git:
+        repo: https://github.com/binaryphile/dot_vim.git
+        dest: $HOME/.config/nvim
+
     - name: install programs
       become: true
       apt: name={{ item }}
