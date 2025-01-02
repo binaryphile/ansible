@@ -116,3 +116,6 @@
       loop:
         - { src: home.nix,   path: .config/home-manager/home.nix  }
         - { src: config.nix, path: .config/nixpkgs/config.nix     }
+
+    - name: install with home-manager
+      command: home-manager switch
