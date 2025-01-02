@@ -80,7 +80,7 @@
       when: nix_installed.failed
     
     - name: run nix install script
-      command: /tmp/lix-install.sh install
+      command: /tmp/lix-install.sh install --no-confirm
       when: nix_installed.failed
     
     - name: Clean up Nix install script
