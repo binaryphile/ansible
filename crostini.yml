@@ -3,6 +3,11 @@
     PATH: "{{ ansible_env.PATH }}:/nix/var/nix/profiles/default/bin"
 
   tasks:
+    - name: Turn off motd
+      copy:
+        dest: "$HOME/.local/share/cros-motd"
+        content: 5
+
     - name: Create required directories
       file:
         path: "$HOME/{{ item }}"
