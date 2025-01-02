@@ -66,22 +66,20 @@
         dest: $HOME/.local/share/nvim/site/autoload/plug.vim
         mode: '644'
 
-    - name: Check if Nix is already installed
+    - name: check if nix is already installed
       command: nix-env --version
       register: nix_installed
       ignore_errors: yes
     
-    - name: Download Nix install script
+    - name: download nix install script
       get_url:
         url: https://install.lix.systems/lix
         dest: /tmp/lix-install.sh
         mode: '0755'
       when: nix_installed.failed
     
-    - name: Run Nix install script
-      shell: sh /tmp/lix-install.sh install
-      args:
-        executable: /bin/bash
+    - name: run nix install script
+      command: /tmp/lix-install.sh install
       when: nix_installed.failed
     
     - name: Clean up Nix install script
@@ -98,6 +96,8 @@
     
     - name: update nix channels
       command: nix-channel --update
+      when: nix_installed.failed
 
     - name: install home-manager
       command: "nix-shell '<home-manager>' -A install"
+      when: nix_installed.failed
