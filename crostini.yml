@@ -9,6 +9,7 @@
         - .config/liquidprompt
         - .config/ranger
         - tmp
+        - .local/share/nvim/site/autoload
       
     - name: ssh directory
       file:
