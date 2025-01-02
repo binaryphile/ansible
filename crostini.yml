@@ -118,6 +118,6 @@
         - { src: config.nix, path: .config/nixpkgs/config.nix     }
 
     - name: Apply home-manager configuration
-      command: home-manager switch
+      command: "bash -lc 'home-manager switch'"
       register: home_manager_result
       changed_when: "'Creating profile generation' in home_manager_result.stdout"
