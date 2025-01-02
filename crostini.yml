@@ -107,9 +107,12 @@
       args:
         creates: $HOME/.config/home-manager
 
-    - name: home-manager link
+    - name: nix links
       file:
-        src:    $HOME/dotfiles/home.nix
-        path:   $HOME/.config/home-manager/home.nix
+        src:    $HOME/dotfiles/{{ item.src }}
+        path:   $HOME/{{ item.path }}
         state:  link
         force:  yes
+        loop:
+          - { src: home.nix,   path: .config/home-manager/home.nix  }
+          - { src: config.nix, path: .config/nixpkgs/config.nix     }
