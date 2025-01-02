@@ -44,11 +44,6 @@
         - { src: tmux.conf,                   path: .tmux.conf                        }
         - { src: ranger/rc.conf,              path: .config/ranger/rc.conf            }
 
-    - name: clone vim configuration
-      git:
-        repo: https://github.com/binaryphile/dot_vim.git
-        dest: $HOME/.config/nvim
-
     - name: install programs
       become: true
       apt: name={{ item }}
@@ -60,4 +55,17 @@
         - htop
         - highlight
         - tree
-    
+  
+    - name: clone vim configuration
+      git:
+        repo: https://github.com/binaryphile/dot_vim.git
+        dest: $HOME/.config/nvim
+
+    - name: install vim-plug
+      shell: >
+        curl -fLo "{{ ansible_env.XDG_DATA_HOME | default(ansible_env.HOME + '/.local/share') }}"
+        /nvim/site/autoload/plug.vim --create-dirs
+        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+      args:
+        creates: "{{ ansible_env.XDG_DATA_HOME | default(ansible_env.HOME + '/.local/share') }}/nvim/site/autoload/plug.vim"
+
