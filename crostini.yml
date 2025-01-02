@@ -92,12 +92,12 @@
       command: >
         /nix/var/nix/profiles/default/bin/nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
       args:
-        creates: $HOME/.nix-defexpr/channels/home-manager
-    
+        creates: $HOME/.nix-channels
+        
     - name: update nix channels
-      command: nix-channel --update
-      when: nix_installed.failed
+      command: /nix/var/nix/profiles/default/bin/nix-channel --update
+      args:
+        creates: $HOME/.nix-defexpr/channels/home-manager
 
     - name: install home-manager
-      command: "nix-shell '<home-manager>' -A install"
-      when: nix_installed.failed
+      command: "/nix/var/nix/profiles/default/bin/nix-shell '<home-manager>' -A install"
