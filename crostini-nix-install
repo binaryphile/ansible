@@ -27,7 +27,8 @@ main() {
   "
 }
 
-group system; {
+group system
+{
   task aptUpdateAndUpgrade
   aptUpdateAndUpgrade() {
     sudo apt update -qq && sudo apt upgrade -y
@@ -47,7 +48,9 @@ group system; {
       .config/ranger
       .local/share/nvim/site/autoload
     )
-    mkdir -p ${dirs[*]}
+    for dir in ${dirs[*]}; do
+      mkdir -pm 755 $dir
+    done
   }
 
   task setUpSSHDirectory mkdir -m 700 $HOME/.ssh
@@ -55,7 +58,8 @@ group system; {
 }
 
 
-group dotfiles; {
+group dotfiles
+{
   task cloneDotfilesRepository git clone https://github.com/binaryphile/dotfiles.git $HOME/dotfiles
   ok '[[ -e $HOME/dotfiles ]]'
 
@@ -85,7 +89,8 @@ group dotfiles; {
 }
 
 
-group nix; {
+group nix
+{
   task installNix
   ok '[[ -e /nix/var/nix/profiles/default/bin/nix-env ]]'
   installNix() {
@@ -122,5 +127,5 @@ group nix; {
 return 2>/dev/null
 set -eu
 
-main "$@"
+main
 summarize

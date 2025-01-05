@@ -1,13 +1,10 @@
 IFS=$'\n'
 set -o noglob
 
-group() {
-  CurrentGroup=$1
-}
+group() { :; }
 
 ok() {
-  local key=$CurrentGroup${CurrentGroup:+.}$CurrentTask
-  Conditions[$key]=$1
+  Conditions[$CurrentTask]=$1
 }
 
 run() {
@@ -24,24 +21,23 @@ run() {
 
   local task
   for task in ${tasks[*]}; do
-    local key=$group${group:+.}$task
-    [[ -v Conditions[$key] ]] && {
-      eval ${Conditions[$key]} && {
-        echo "[$key] ok"
-        Ok[$key]=1
-        break
+    [[ -v Conditions[$task] ]] && {
+      eval ${Conditions[$task]} && {
+        echo "[$task] ok"
+        Ok[$task]=1
+        continue
       }
     }
 
-    $key
+    $task
     case $? in
       0 )
-        echo "[$key] changed"
-        Changed[$key]=1
+        echo "[$task] changed"
+        Changed[$task]=1
         ;;
       * )
-        echo "[$key] failed"
-        Failed[$key]=1
+        echo "[$task] failed"
+        Failed[$task]=1
         ;;
     esac
   done
@@ -62,10 +58,9 @@ task() {
   (( $# == 1 )) && return
   shift
 
-  local key=$CurrentGroup${CurrentGroup:+.}$CurrentTask
   local command
   printf -v command '%q ' "$@"
-  eval "$key() {
+  eval "$CurrentTask() {
     $command
   }"
 }

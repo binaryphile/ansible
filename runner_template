@@ -6,15 +6,15 @@ source "$Here"/task.bash
 main() {
   run mytask
   run taskgroup "
-    mytask
+    grouptask
   "
 }
 
-task mytask echo 'hello world'
+task mytask echo 'hello task!'
 
 group taskgroup
 {
-  task mytask echo 'hello taskgroup'
+  task grouptask echo 'hello grouptask!'
 }
 
 return 2>/dev/null
