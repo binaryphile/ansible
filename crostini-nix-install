@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-Here=$(cd "$(dirname "$BASH_SOURCE")"; cd -P "$(dirname "$(readlink "$BASH_SOURCE" || echo .)")"; pwd)
-source "$Here"/task.bash
+taskBash=$(curl -s https://raw.githubusercontent.com/binaryphile/ansible/main/task.bash) || exit 1
+eval "$taskBash"
 
 main() {
   run system "
