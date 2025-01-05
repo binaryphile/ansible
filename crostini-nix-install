@@ -125,5 +125,7 @@ nix() {
 return 2>/dev/null
 set -eu
 
+[[ ${1:-} == --trace ]] && { shift; set -x; }
+
 main
 summarize

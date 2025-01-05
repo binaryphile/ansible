@@ -1,8 +1,11 @@
 IFS=$'\n'
 set -o noglob
 
+declare -A Conditions
 ok() { Conditions[$CurrentTask]=$1; }
 
+Maps=( Ok Changed Failed )
+declare -A ${Maps[*]}
 run() {
   local task=$CurrentTask
   [[ -v Conditions[$task] ]] && {
@@ -31,10 +34,9 @@ summarize() {
 
   local map
   local keys=()
-  for map in ${Maps[*]}; do
-    local -n m=$map
-    keys=( ${!m[*]} )
-    echo "${map,}: ${#keys[*]}"
+  for m in ${Maps[*]}; do
+    local -n map=$m
+    echo "${map,}: ${#map[*]}"
   done
 }
 
@@ -49,6 +51,3 @@ task() {
     $command
   }"
 }
-
-Maps=( Ok Changed Failed )
-declare -A ${Maps[*]} Conditions
