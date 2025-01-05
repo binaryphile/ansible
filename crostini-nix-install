@@ -11,14 +11,12 @@ case $? in
 esac
 
 main() {
-  system
-  dotfiles
-  nix
+  section system
+  section dotfiles
+  section nix
 }
 
 system() {
-  section system
-
   task 'apt update and upgrade'
   definition() {
     sudo apt update -qq && sudo apt upgrade -y
@@ -34,7 +32,7 @@ system() {
 
   task 'create required directories'
   definition() {
-    local dirs=(
+    dirs=(
       .config/liquidprompt
       .config/nixpkgs
       .config/ranger
@@ -52,8 +50,6 @@ system() {
 }
 
 dotfiles() {
-  section dotfiles
-
   task 'clone dotfiles repository' git clone https://github.com/binaryphile/dotfiles.git $HOME/dotfiles
   ok '[[ -e $HOME/dotfiles ]]'
   run
@@ -64,7 +60,7 @@ dotfiles() {
 
   task 'create dotfile symlinks'
   definition() {
-    local links=(
+    links=(
       '[src]=bash/init.bash               [path]=.profile'
       '[src]=bash/init.bash               [path]=.bash_profile'
       '[src]=bash/init.bash               [path]=.bashrc'
@@ -76,7 +72,6 @@ dotfiles() {
       '[src]=ranger/rc.conf               [path]=.config/ranger/rc.conf'
     )
 
-    local link
     for l in ${links[*]}; do
       local -A link="( $l )" # expand value to associative array
       ln -sf $HOME/dotfiles/${link[src]} $HOME/${link[path]}
@@ -86,8 +81,6 @@ dotfiles() {
 }
 
 nix() {
-  section nix
-
   task 'install nix'
   definition() {
     curl -sSf -L https://install.lix.systems/lix | sh -s -- install --no-confirm
@@ -110,12 +103,11 @@ nix() {
 
   task 'create nix configuration symlinks'
   definition() {
-    local links=(
+    links=(
       '[src]=home.nix    [path]=home-manager/home.nix'
       '[src]=config.nix  [path]=nixpkgs/config.nix'
     )
 
-    local link
     for l in ${links[*]}; do
       local -A link="( $l )" # expand value to associative array
       ln -sf $HOME/dotfiles/${link[src]} $HOME/.config/${link[path]}
