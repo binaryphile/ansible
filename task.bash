@@ -3,13 +3,11 @@ set -o noglob
 
 Task=''
 declare -A Conditions
+
 ok() { Conditions[$Task]=$1; }
 
+declare -A Ok=() Changed=() Failed=()
 Maps=( Ok Changed Failed )
-for map in ${Maps[*]}; do
-  declare -A "$map=()"
-done
-unset -v map
 
 run() {
   [[ -v Conditions[$Task] ]] && {
@@ -20,7 +18,7 @@ run() {
     }
   }
 
-  $Task
+  ( definition )
   case $? in
     0 )
       echo "[$Task] changed"
@@ -51,7 +49,7 @@ task() {
 
   local command
   printf -v command '%q ' "$@"
-  eval "$Task() {
+  definition() {
     $command
-  }"
+  }
 }
