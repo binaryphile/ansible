@@ -1,44 +1,56 @@
 IFS=$'\n'
 set -o noglob
 
-_initdef() {
-  def() {
-    local arg command running=1
-    for arg in "$@"; do
-      if [[ arg == '$1' ]]; then
-        running=0
-      else
-        printf -v arg %q $arg
-      fi
-      command+="$arg "
-    done
-    eval "def() { $command; }"
-
-    (( running )) && run || loop
-  }
+# _def is the default implementation of the def function.
+# The user calls the default implementation when they define the task using def. The default
+# implementation accepts a task as arguments and redefines def to run that command, running
+# it indirectly by then calling run, or loop if there is a '$1' argument in the task.
+_def() {
+  local arg command running=1
+  for arg in "$@"; do
+    if [[ arg == '$1' ]]; then
+      running=0
+    else
+      printf -v arg %q $arg
+    fi
+    command+="$arg "
+  done
+  eval "def() { $command; }"
+  (( running )) && run || loop
 }
-_initdef
 
+# _resetdef makes _def available as def.
+_resetdef() {
+  def() { _def "$@"; }
+}
+_resetdef
+
+# loop runs def indirectly by looping through stdin inputs and calling run.
 loop() {
   while IFS=$' \t\n' read -r line; do
     run $line
   done
 }
 
-Task=''
-declare -A Conditions
+Task=''                 # the current task
+declare -A Conditions   # conditions telling when a task is satisfied
 
+# ok adds a condition to Conditions.
 ok() { Conditions[$Task]=$1; }
 
-declare -A Ok=() Changed=() Failed=()
-Maps=( Ok Changed Failed )
+declare -A Ok=()            # tasks that were already satisfied
+declare -A Changed=()       # tasks that were run
+declare -A Failed=()        # tasks that failed
+Maps=( Ok Changed Failed )  # names of the maps included in the summary
 
+# run runs def after checking that it is not already satisfied and reports the result.
+# When done, it resets def to the default implementation.
 run() {
   local suffix=${1:+ - }${1:-}
   [[ -v Conditions[$Task] ]] && eval ${Conditions[$Task]} && {
     Ok[$Task]=1
     echo -e "[ok]\t\t$Task$suffix"
-    _initdef
+    _resetdef
 
     return
   }
@@ -56,14 +68,16 @@ run() {
       echo "$output"
       ;;
   esac
-  _initdef
+  _resetdef
 }
 
+# section announces the section name and runs the named section function.
 section() {
   echo -e "\nSection $1"
   $1
 }
 
+# summarize is run by the user at the end to report the results by examining the maps.
 summarize() {
   echo -e "\nsummary\n-------"
 
@@ -73,6 +87,8 @@ summarize() {
   done
 }
 
+# task defines the current task and, if given other arguments, creates a task and runs it.
+# Tasks can loop if they include a '$1' argument and get fed items via stdin.
 task() {
   Task=$1
   (( $# == 1 )) && return

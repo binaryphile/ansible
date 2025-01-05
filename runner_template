@@ -24,7 +24,7 @@ mysection() {
 
   task 'always fails due to error'
   def() {
-    echo 'always fails due to error' >&2;
+    echo 'always fails due to error' >&2
     false
   }
   run
