@@ -34,8 +34,6 @@ section() { echo "[section $1]"; }
 summarize() {
   echo -e "\nsummary\n-------"
 
-  local map
-  local keys=()
   for m in ${Maps[*]}; do
     local -n map=$m
     echo "${map,}: ${#map[*]}"
