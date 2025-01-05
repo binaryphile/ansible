@@ -12,7 +12,7 @@ _initdef
 _redef() {
   local command
   printf -v command '%q ' "$@"
-  def() { $command; }
+  eval "def() { $command; }"
 }
 
 loop() {
