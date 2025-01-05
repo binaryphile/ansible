@@ -1,0 +1,191 @@
+#!/usr/bin/env bash
+
+IFS=$'\n'
+set -o noglob
+
+main() {
+  run system "
+    aptUpdateAndUpgrade
+    turnOffMOTD
+    createRequiredDirectories
+    setUpSSHDirectory
+  "
+
+  run dotfiles "
+    cloneDotfilesRepository
+    linkContextFile
+    createDotfileSymlinks
+  "
+
+  run nix "
+    installNix
+    addHomeManagerChannel
+    updateNixChannels
+    installHomeManager
+    createNixConfigurationSymlinks
+    applyHomeManagerConfiguration
+  "
+}
+
+group system
+  task aptUpdateAndUpgrade
+    aptUpdateAndUpgrade() {
+      sudo apt update -qq && sudo apt upgrade -y
+    }
+
+  task turnOffMOTD
+    ok '[[ $(<$HOME/.local/share/cros-motd) == 5 ]]'
+    turnOffMOTD() {
+      echo 5>$HOME/.local/share/cros-motd
+    }
+
+  task createRequiredDirectories
+    createRequiredDirectories() {
+      mkdir -p "
+        .config/liquidprompt
+        .config/nixpkgs
+        .config/ranger
+        .local/share/nvim/site/autoload
+      "
+    }
+
+  task setUpSSHDirectory
+
+
+group dotfiles
+  task cloneDotfilesRepository git clone https://github.com/binaryphile/dotfiles.git $HOME/dotfiles
+    ok '[[ -e $HOME/dotfiles ]]'
+
+  task linkContextFile
+
+  task createDotfileSymlinks
+    createDotfileSymlinks() {
+      local links=(
+        '[src]=bash/init.bash               [path]=.profile'
+        '[src]=bash/init.bash               [path]=.bash_profile'
+        '[src]=bash/init.bash               [path]=.bashrc'
+        '[src]=gitconfig                    [path]=.gitconfig'
+        '[src]=liquidprompt/liquid.theme    [path]=.config/liquidprompt/liquid.theme'
+        '[src]=liquidprompt/liquidpromptrc  [path]=.config/liquidpromptrc'
+        '[src]=ssh/config                   [path]=.ssh/config'
+        '[src]=tmux.conf                    [path]=.tmux.conf'
+        '[src]=ranger/rc.conf               [path]=.config/ranger/rc.conf'
+      )
+
+      local link
+      for link in "${links[@]}"; do
+        local -A link="($link)" # expand value to associative array
+        ln -sf $HOME/dotfiles/${link[src]} $HOME/${link[path]}
+      done
+    }
+
+
+group nix
+  task installNix
+    ok '[[ -e /nix/var/nix/profiles/default/bin/nix-env ]]'
+    installNix() {
+      curl -sSf -L https://install.lix.systems/lix | sh -s -- install --no-confirm
+    }
+
+  task addHomeManagerChannel nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
+  ok '[[ -e $HOME/.nix-channels ]]'
+
+  task updateNixChannels
+
+  task installHomeManager nix-shell '<home-manager>' -A install
+  ok '[[ -e $HOME/.config/home-manager ]]'
+
+  task createNixConfigurationSymlinks
+  createNixConfigurationSymlinks() {
+    local links=(
+      '[src]=home.nix    [path]=home-manager/home.nix'
+      '[src]=config.nix  [path]=nixpkgs/config.nix'
+    )
+
+    local link
+    for link in "${links[@]}"; do
+      local -A link="($link)" # expand value to associative array
+      ln -sf $HOME/dotfiles/${link[src]} $HOME/.config/${link[path]}
+    done
+  }
+
+  task applyHomeManagerConfiguration bash -lc 'home-manager switch'
+
+group() {
+  CurrentGroup=$1
+}
+
+task() {
+  CurrentTask=$1
+  (( $# > 1 )) && shift
+  local key=$CurrentGroup${CurrentGroup:+-}$CurrentTask
+  Tasks[$key]=$(printf '%q ' "$@")
+}
+
+ok() {
+  local key=$CurrentGroup${CurrentGroup:+-}$CurrentTask
+  Conditions[$key]=$(printf '%q ' "$@")
+}
+
+run() {
+  local tasklist
+  local group=''
+  case $# in
+    1 ) tasklist=$1;;
+    2 )
+      group=$1
+      tasklist=$2
+      ;;
+  esac
+
+  [[ $group != '' ]] && echo "group $group"
+
+  for task in $tasklist; do
+    local key=$group${group:+-}$task
+    [[ -v Conditions[$key] ]] && {
+      eval ${Conditions[$key]} && {
+        echo "$task ok"
+        Ok[$key]=1
+      }
+    }
+
+    eval "${Tasks[$key]}"
+    case $? in
+      0 )
+        echo "$task changed"
+        Changed[$key]=1
+        ;;
+      * )
+        echo "$task failed"
+        Failed[$key]=1
+        ;;
+    esac
+  done
+}
+
+summarize() {
+  for map in ${Maps[*]}; do
+    local -n m=$map
+    keys=${!m[*]}
+    echo "$map: ${#keys[*]}"
+  done
+}
+
+Maps=(
+  Changed
+  Conditions
+  Failed
+  Ok
+  Tasks
+)
+declare -A "${Maps[@]}"
+
+CurrentGroup=''
+CurrentTask=''
+
+return 2>/dev/null
+
+set -eu
+
+main "$@"
+summarize
