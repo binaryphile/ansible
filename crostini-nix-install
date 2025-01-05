@@ -5,16 +5,15 @@ eval "$taskBash"
 unset -v taskBash
 
 main() {
-  echo '[system section]'
   system
-  echo '[dotfiles section]'
   dotfiles
-  echo '[nix section]'
   nix
 }
 
 
 system() {
+  section system
+
   task aptUpdateAndUpgrade
   aptUpdateAndUpgrade() {
     sudo apt update -qq && sudo apt upgrade -y
@@ -50,6 +49,8 @@ system() {
 
 
 dotfiles() {
+  section dotfiles
+
   task cloneDotfilesRepository git clone https://github.com/binaryphile/dotfiles.git $HOME/dotfiles
   ok '[[ -e $HOME/dotfiles ]]'
   run
@@ -83,6 +84,8 @@ dotfiles() {
 
 
 nix() {
+  section nix
+
   task installNix
   ok '[[ -e /nix/var/nix/profiles/default/bin/nix-env ]]'
   installNix() {

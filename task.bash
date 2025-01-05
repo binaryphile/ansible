@@ -29,6 +29,8 @@ run() {
   esac
 }
 
+section() { echo "[section $1]"; }
+
 summarize() {
   echo -e "\nsummary\n-------"
 
