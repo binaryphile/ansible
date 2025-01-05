@@ -3,20 +3,24 @@ set -o noglob
 
 _initdef() {
   def() {
-    _redef "$@"
-    [[ $* != *'$1'* ]] && run || loop
+    local arg command running=1
+    for arg in "$@"; do
+      if [[ arg == '$1' ]]; then
+        running=0
+      else
+        printf -v arg %q $arg
+      fi
+      command+="$arg "
+    done
+    eval "def() { $command; }"
+
+    (( running )) && run || loop
   }
 }
 _initdef
 
-_redef() {
-  local command
-  printf -v command '%q ' "$@"
-  eval "def() { $command; }"
-}
-
 loop() {
-  while read -r line; do
+  while IFS=$' \t\n' read -r line; do
     run $line
   done
 }

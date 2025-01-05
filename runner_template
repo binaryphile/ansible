@@ -5,8 +5,15 @@ source "$Here"/task.bash
 
 main() {
   task mytask echo 'hello from mytask!'
+  section mysection
 }
 
+mysection() {
+  task myloop echo '$1' <<'  END'
+    one
+    two
+  END
+}
 
 return 2>/dev/null
 set -eu
