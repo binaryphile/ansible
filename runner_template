@@ -4,21 +4,14 @@ Here=$(cd "$(dirname "$BASH_SOURCE")"; cd -P "$(dirname "$(readlink "$BASH_SOURC
 source "$Here"/task.bash
 
 main() {
-  run mytask
-  run taskgroup '
-    othertask
-  '
+  task mytask echo 'hello from mytask!'
 }
 
-task mytask echo 'hello from mytask!'
-
-group taskgroup
-{
-  task othertask echo 'hello from othertask!'
-}
 
 return 2>/dev/null
 set -eu
+
+[[ ${1:-} == --trace ]] && { shift; set -x; }
 
 main
 summarize
