@@ -5,9 +5,16 @@ source "$Here"/task.bash
 
 main() {
   run mytask
+  run taskgroup "
+    mytask
+  "
 }
 
 task mytask echo 'hello world'
+
+group taskgroup; {
+  task mytask echo 'hello taskgroup'
+}
 
 return 2>/dev/null
 set -eu

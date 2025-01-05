@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-IFS=$'\n'
-set -o noglob
+Here=$(cd "$(dirname "$BASH_SOURCE")"; cd -P "$(dirname "$(readlink "$BASH_SOURCE" || echo .)")"; pwd)
+source "$Here"/task.bash
 
 main() {
   run system "
@@ -27,29 +27,30 @@ main() {
   "
 }
 
-group system
+group system {
   task aptUpdateAndUpgrade
-    aptUpdateAndUpgrade() {
-      sudo apt update -qq && sudo apt upgrade -y
-    }
+  aptUpdateAndUpgrade() {
+    sudo apt update -qq && sudo apt upgrade -y
+  }
 
   task turnOffMOTD
-    ok '[[ $(<$HOME/.local/share/cros-motd) == 5 ]]'
-    turnOffMOTD() {
-      echo 5>$HOME/.local/share/cros-motd
-    }
+  ok '[[ $(<$HOME/.local/share/cros-motd) == 5 ]]'
+  turnOffMOTD() {
+    echo 5>$HOME/.local/share/cros-motd
+  }
 
   task createRequiredDirectories
-    createRequiredDirectories() {
-      mkdir -p "
-        .config/liquidprompt
-        .config/nixpkgs
-        .config/ranger
-        .local/share/nvim/site/autoload
-      "
-    }
+  createRequiredDirectories() {
+    mkdir -p "
+      .config/liquidprompt
+      .config/nixpkgs
+      .config/ranger
+      .local/share/nvim/site/autoload
+    "
+  }
 
   task setUpSSHDirectory
+}
 
 
 group dotfiles
@@ -111,80 +112,7 @@ group nix
 
   task applyHomeManagerConfiguration bash -lc 'home-manager switch'
 
-group() {
-  CurrentGroup=$1
-}
-
-task() {
-  CurrentTask=$1
-  (( $# > 1 )) && shift
-  local key=$CurrentGroup${CurrentGroup:+-}$CurrentTask
-  Tasks[$key]=$(printf '%q ' "$@")
-}
-
-ok() {
-  local key=$CurrentGroup${CurrentGroup:+-}$CurrentTask
-  Conditions[$key]=$(printf '%q ' "$@")
-}
-
-run() {
-  local tasklist
-  local group=''
-  case $# in
-    1 ) tasklist=$1;;
-    2 )
-      group=$1
-      tasklist=$2
-      ;;
-  esac
-
-  [[ $group != '' ]] && echo "group $group"
-
-  for task in $tasklist; do
-    local key=$group${group:+-}$task
-    [[ -v Conditions[$key] ]] && {
-      eval ${Conditions[$key]} && {
-        echo "$task ok"
-        Ok[$key]=1
-      }
-    }
-
-    eval "${Tasks[$key]}"
-    case $? in
-      0 )
-        echo "$task changed"
-        Changed[$key]=1
-        ;;
-      * )
-        echo "$task failed"
-        Failed[$key]=1
-        ;;
-    esac
-  done
-}
-
-summarize() {
-  for map in ${Maps[*]}; do
-    local -n m=$map
-    keys=${!m[*]}
-    echo "$map: ${#keys[*]}"
-  done
-}
-
-Maps=(
-  Changed
-  Conditions
-  Failed
-  Ok
-  Tasks
-)
-declare -A "${Maps[@]}"
-
-CurrentGroup=''
-CurrentTask=''
-
 return 2>/dev/null
-
 set -eu
 
 main "$@"
