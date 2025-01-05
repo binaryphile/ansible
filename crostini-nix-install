@@ -10,7 +10,6 @@ main() {
   nix
 }
 
-
 system() {
   section system
 
@@ -21,10 +20,10 @@ system() {
   run
 
   task turnOffMOTD
-  ok '[[ $(<$HOME/.local/share/cros-motd) == 5 ]]'
   turnOffMOTD() {
     echo 5>$HOME/.local/share/cros-motd
   }
+  ok '[[ $(<$HOME/.local/share/cros-motd) == 5 ]]'
   run
 
   task createRequiredDirectories
@@ -45,8 +44,6 @@ system() {
   ok '[[ -d $HOME/.ssh ]]'
   run
 }
-
-
 
 dotfiles() {
   section dotfiles
@@ -74,24 +71,23 @@ dotfiles() {
     )
 
     local link
-    for link in ${links[*]}; do
-      local -A link="($link)" # expand value to associative array
+    for l in ${links[*]}; do
+      local -A link="($l)" # expand value to associative array
       ln -sf $HOME/dotfiles/${link[src]} $HOME/${link[path]}
     done
   }
   run
 }
 
-
 nix() {
   section nix
 
   task installNix
-  ok '[[ -e /nix/var/nix/profiles/default/bin/nix-env ]]'
   installNix() {
     curl -sSf -L https://install.lix.systems/lix | sh -s -- install --no-confirm
     PATH+=:/nix/var/nix/profiles/default/bin
   }
+  ok '[[ -e /nix/var/nix/profiles/default/bin/nix-env ]]'
   run
 
   task addHomeManagerChannel nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
@@ -114,8 +110,8 @@ nix() {
     )
 
     local link
-    for link in "${links[@]}"; do
-      local -A link="($link)" # expand value to associative array
+    for l in ${links[*]}; do
+      local -A link="($l)" # expand value to associative array
       ln -sf $HOME/dotfiles/${link[src]} $HOME/.config/${link[path]}
     done
   }

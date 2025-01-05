@@ -1,30 +1,30 @@
 IFS=$'\n'
 set -o noglob
 
+Task=''
 declare -A Conditions
-ok() { Conditions[$CurrentTask]=$1; }
+ok() { Conditions[$Task]=$1; }
 
 Maps=( Ok Changed Failed )
 declare -A ${Maps[*]}
 run() {
-  local task=$CurrentTask
-  [[ -v Conditions[$task] ]] && {
-    eval ${Conditions[$task]} && {
-      echo "[$task] ok"
-      Ok[$task]=1
+  [[ -v Conditions[$Task] ]] && {
+    eval ${Conditions[$Task]} && {
+      echo "[$Task] ok"
+      Ok[$Task]=1
       return
     }
   }
 
-  $task
+  $Task
   case $? in
     0 )
-      echo "[$task] changed"
-      Changed[$task]=1
+      echo "[$Task] changed"
+      Changed[$Task]=1
       ;;
     * )
-      echo "[$task] failed"
-      Failed[$task]=1
+      echo "[$Task] failed"
+      Failed[$Task]=1
       ;;
   esac
 }
@@ -43,13 +43,13 @@ summarize() {
 }
 
 task() {
-  CurrentTask=$1
+  Task=$1
   (( $# == 1 )) && return
   shift
 
   local command
   printf -v command '%q ' "$@"
-  eval "$CurrentTask() {
+  eval "$Task() {
     $command
   }"
 }
