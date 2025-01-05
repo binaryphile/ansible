@@ -1,17 +1,15 @@
 IFS=$'\n'
 set -o noglob
 
-group() { echo "[group $1]"; }
-
 ok() { Conditions[$CurrentTask]=$1; }
 
 run() {
-  local task=${1:-$CurrentTask}
+  local task=$CurrentTask
   [[ -v Conditions[$task] ]] && {
     eval ${Conditions[$task]} && {
       echo "[$task] ok"
       Ok[$task]=1
-      continue
+      return
     }
   }
 
@@ -52,11 +50,5 @@ task() {
   }"
 }
 
-Maps=(
-  Ok
-  Changed
-  Failed
-)
+Maps=( Ok Changed Failed )
 declare -A ${Maps[*]} Conditions
-CurrentGroup=''
-CurrentTask=''
