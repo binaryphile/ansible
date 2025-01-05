@@ -12,7 +12,8 @@ main() {
 
 task mytask echo 'hello world'
 
-group taskgroup; {
+group taskgroup
+{
   task mytask echo 'hello taskgroup'
 }
 
