@@ -37,22 +37,22 @@ run() {
   local suffix=${1:+ - }${1:-}
   [[ -v Conditions[$Task] ]] && eval ${Conditions[$Task]} && {
     Ok[$Task]=1
-    echo "[$Task] ok$suffix"
+    echo -e "[ok]\t\t$Task$suffix"
     _initdef
 
     return
   }
 
   local output rc
-  output=$( def $* ) && eval ${Conditions[$Task]:-} && rc=$? || rc=$?
+  output=$( def $* 2>&1 ) && eval ${Conditions[$Task]:-} && rc=$? || rc=$?
   case $rc in
     0 )
       Changed[$Task]=1
-      echo "[$Task] changed$suffix"
+      echo -e "[changed]\t$Task$suffix"
       ;;
     * )
       Failed[$Task]=1
-      echo "[$Task] failed$suffix"
+      echo -e "[failed]\t$Task$suffix"
       echo "$output"
       ;;
   esac
@@ -60,7 +60,7 @@ run() {
 }
 
 section() {
-  echo -e "\n[section $1]"
+  echo -e "\nSection $1"
   $1
 }
 

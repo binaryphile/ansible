@@ -4,15 +4,30 @@ Here=$(cd "$(dirname "$BASH_SOURCE")"; cd -P "$(dirname "$(readlink "$BASH_SOURC
 source "$Here"/task.bash
 
 main() {
-  task mytask echo 'hello from mytask!'
+  task "my changed" echo 'hello there!'
   section mysection
 }
 
 mysection() {
-  task myloop echo '$1' <<'  END'
+  task "my loop" echo '$1' <<'  END'
     one
     two
   END
+
+  task "my not run"
+  ok true
+  def not run
+
+  task "always fails due to ok"
+  ok false
+  def echo "always fails due to ok"
+
+  task "always fails due to error"
+  def() {
+    echo "always fails due to error" >&2;
+    false
+  }
+  run
 }
 
 return 2>/dev/null
