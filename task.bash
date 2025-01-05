@@ -8,17 +8,10 @@ ok() {
 }
 
 run() {
-  local group=''
-  local tasks=()
-  case $# in
-    1 ) local -a tasks="( $1 )";;
-    2 )
-      group=$1
-      local -a tasks="( $2 )"
-      ;;
-  esac
+  (( $# > 1 )) && { local group=$1; shift; }
+  local -a tasks="( $1 )"
 
-  [[ $group != '' ]] && echo -e "\n[group $group]"
+  [[ -v group ]] && echo -e "\n[group $group]"
 
   local task
   for task in ${tasks[*]}; do
@@ -46,10 +39,12 @@ run() {
 
 summarize() {
   echo -e "\nsummary\n-------"
+
   local map
+  local keys=()
   for map in ${Maps[*]}; do
     local -n m=$map
-    local keys=( ${!m[*]} )
+    keys=( ${!m[*]} )
     echo "${map,}: ${#keys[*]}"
   done
 }
