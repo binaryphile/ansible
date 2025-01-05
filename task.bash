@@ -1,6 +1,23 @@
 IFS=$'\n'
 set -o noglob
 
+read -rd '' Def <<'END'
+def() {
+  local command
+  printf -v command '%q ' "$@"
+  def() ( $command; ) # notice parens for subshell
+  [[ $command != *'$1'* ]] && run || loop
+}
+END
+
+eval "$Def"
+
+loop() {
+  while read -r line; do
+    run $line
+  done
+}
+
 Task=''
 declare -A Conditions
 
@@ -10,25 +27,28 @@ declare -A Ok=() Changed=() Failed=()
 Maps=( Ok Changed Failed )
 
 run() {
+  local suffix=${1:+ - }${1:-}
   [[ -v Conditions[$Task] ]] && {
     eval ${Conditions[$Task]} && {
-      echo "[$Task] ok"
+      echo "[$Task] ok$suffix"
       Ok[$Task]=1
+      eval "$Def"
       return
     }
   }
 
-  ( definition )
+  ( def $* ) # notice parens for subshell
   case $? in
     0 )
-      echo "[$Task] changed"
+      echo "[$Task] changed$suffix"
       Changed[$Task]=1
       ;;
     * )
-      echo "[$Task] failed"
+      echo "[$Task] failed$suffix"
       Failed[$Task]=1
       ;;
   esac
+  eval "$Def"
 }
 
 section() {
@@ -50,9 +70,5 @@ task() {
   (( $# == 1 )) && return
   shift
 
-  local command
-  printf -v command '%q ' "$@"
-  definition() {
-    $command
-  }
+  def "$@"
 }

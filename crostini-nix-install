@@ -18,105 +18,90 @@ main() {
 
 system() {
   task 'apt update and upgrade'
-  definition() {
+  def() {
     sudo apt update -qq && sudo apt upgrade -y
   }
   run
 
   task 'turn off motd'
-  definition() {
+  ok '[[ $(<$HOME/.local/share/cros-motd) == 5 ]]'
+  def() {
     echo 5 >$HOME/.local/share/cros-motd
   }
-  ok '[[ $(<$HOME/.local/share/cros-motd) == 5 ]]'
   run
 
-  task 'create required directories'
-  definition() {
-    dirs=(
-      .config/liquidprompt
-      .config/nixpkgs
-      .config/ranger
-      .local/share/nvim/site/autoload
-    )
-    for dir in ${dirs[*]}; do
-      mkdir -pm 755 $HOME/$dir
-    done
-  }
-  run
+  task 'create required directories' mkdir -pm 755 $HOME/'$1' <<<'
+    .config/liquidprompt
+    .config/nixpkgs
+    .config/ranger
+    .local/share/nvim/site/autoload
+  '
 
-  task 'set up ssh directory' mkdir -m 700 $HOME/.ssh
+  task 'set up ssh directory'
   ok '[[ -d $HOME/.ssh ]]'
-  run
+  def mkdir -m 700 $HOME/.ssh
 }
 
 dotfiles() {
-  task 'clone dotfiles repository' git clone https://github.com/binaryphile/dotfiles.git $HOME/dotfiles
+  task 'clone dotfiles repository'
   ok '[[ -e $HOME/dotfiles ]]'
-  run
+  def git clone https://github.com/binaryphile/dotfiles.git $HOME/dotfiles
 
-  task 'link context file' ln -s contexts/work/crostini-bullseye $HOME/dotfiles/context
+  task 'link context file'
   ok '[[ -e $HOME/dotfiles/context ]]'
-  run
+  def ln -s contexts/work/crostini-bullseye $HOME/dotfiles/context
 
   task 'create dotfile symlinks'
-  definition() {
-    links=(
-      '[src]=bash/init.bash               [path]=.profile'
-      '[src]=bash/init.bash               [path]=.bash_profile'
-      '[src]=bash/init.bash               [path]=.bashrc'
-      '[src]=gitconfig                    [path]=.gitconfig'
-      '[src]=liquidprompt/liquid.theme    [path]=.config/liquidprompt/liquid.theme'
-      '[src]=liquidprompt/liquidpromptrc  [path]=.config/liquidpromptrc'
-      '[src]=ssh/config                   [path]=.ssh/config'
-      '[src]=tmux.conf                    [path]=.tmux.conf'
-      '[src]=ranger/rc.conf               [path]=.config/ranger/rc.conf'
-    )
-
-    for l in ${links[*]}; do
-      local -A link="( $l )" # expand value to associative array
-      ln -sf $HOME/dotfiles/${link[src]} $HOME/${link[path]}
-    done
+  def() {
+    local -A link="( $1 )" # expand value to associative array
+    ln -sf $HOME/dotfiles/${link[src]} $HOME/${link[path]}
   }
-  run
+  loop '
+    [src]=bash/init.bash               [path]=.profile
+    [src]=bash/init.bash               [path]=.bash_profile
+    [src]=bash/init.bash               [path]=.bashrc
+    [src]=gitconfig                    [path]=.gitconfig
+    [src]=liquidprompt/liquid.theme    [path]=.config/liquidprompt/liquid.theme
+    [src]=liquidprompt/liquidpromptrc  [path]=.config/liquidpromptrc
+    [src]=ssh/config                   [path]=.ssh/config
+    [src]=tmux.conf                    [path]=.tmux.conf
+    [src]=ranger/rc.conf               [path]=.config/ranger/rc.conf
+  '
 }
 
 nix() {
   task 'install nix'
-  definition() {
-    curl -sSf -L https://install.lix.systems/lix | sh -s -- install --no-confirm
-    PATH+=:/nix/var/nix/profiles/default/bin
-  }
   ok '[[ -e /nix/var/nix/profiles/default/bin/nix-env ]]'
+  def() {
+    curl -sSf -L https://install.lix.systems/lix | sh -s -- install --no-confirm
+  }
   run
+  PATH+=:/nix/var/nix/profiles/default/bin
 
-  task 'add home manager channel' nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
+  task 'add home manager channel'
   ok '[[ -e $HOME/.nix-channels ]]'
-  run
+  def nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
 
-  task 'update nix channels' nix-channel --update
+  task 'update nix channels'
   ok '[[ -e $HOME/.nix-defexpr/channels/home-manager ]]'
-  run
+  def nix-channel --update
 
-  task 'install home manager' nix-shell '<home-manager>' -A install
+  task 'install home manager'
   ok '[[ -e $HOME/.config/home-manager ]]'
-  run
+  def nix-shell '<home-manager>' -A install
 
   task 'create nix configuration symlinks'
-  definition() {
-    links=(
-      '[src]=home.nix    [path]=home-manager/home.nix'
-      '[src]=config.nix  [path]=nixpkgs/config.nix'
-    )
-
-    for l in ${links[*]}; do
-      local -A link="( $l )" # expand value to associative array
-      ln -sf $HOME/dotfiles/${link[src]} $HOME/.config/${link[path]}
-    done
+  def() {
+    local -A link="( $1 )" # expand value to associative array
+    ln -sf $HOME/dotfiles/${link[src]} $HOME/.config/${link[path]}
   }
-  run
+  loop '
+    [src]=home.nix    [path]=home-manager/home.nix
+    [src]=config.nix  [path]=nixpkgs/config.nix
+  '
 
   task 'apply home manager configuration'
-  definition() {
+  def() {
     source $HOME/.nix-profile/etc/profile.d/hm-session-vars.sh
     home-manager switch
   }
