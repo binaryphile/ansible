@@ -1,40 +1,31 @@
 IFS=$'\n'
 set -o noglob
 
-group() { :; }
+group() { echo "[group $1]"; }
 
-ok() {
-  Conditions[$CurrentTask]=$1
-}
+ok() { Conditions[$CurrentTask]=$1; }
 
 run() {
-  (( $# > 1 )) && { local group=$1; shift; }
-  local -a tasks="( $1 )"
-
-  [[ -v group ]] && echo -e "\n[group $group]"
-
-  local task
-  for task in ${tasks[*]}; do
-    [[ -v Conditions[$task] ]] && {
-      eval ${Conditions[$task]} && {
-        echo "[$task] ok"
-        Ok[$task]=1
-        continue
-      }
+  local task=${1:-$CurrentTask}
+  [[ -v Conditions[$task] ]] && {
+    eval ${Conditions[$task]} && {
+      echo "[$task] ok"
+      Ok[$task]=1
+      continue
     }
+  }
 
-    $task
-    case $? in
-      0 )
-        echo "[$task] changed"
-        Changed[$task]=1
-        ;;
-      * )
-        echo "[$task] failed"
-        Failed[$task]=1
-        ;;
-    esac
-  done
+  $task
+  case $? in
+    0 )
+      echo "[$task] changed"
+      Changed[$task]=1
+      ;;
+    * )
+      echo "[$task] failed"
+      Failed[$task]=1
+      ;;
+  esac
 }
 
 summarize() {
