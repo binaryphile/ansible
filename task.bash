@@ -33,7 +33,7 @@ run() {
       }
     }
 
-    eval "${Tasks[$key]}"
+    $key
     case $? in
       0 )
         echo "[$key] changed"
@@ -59,9 +59,15 @@ summarize() {
 
 task() {
   CurrentTask=$1
-  (( $# > 1 )) && shift
+  (( $# == 1 )) && return
+  shift
+
   local key=$CurrentGroup${CurrentGroup:+.}$CurrentTask
-  printf -v Tasks[$key] '%q ' "$@"
+  local command
+  printf -v command '%q ' "$@"
+  eval "$key() {
+    $command
+  }"
 }
 
 Maps=(
@@ -69,6 +75,6 @@ Maps=(
   Changed
   Failed
 )
-declare -A ${Maps[*]} Conditions Tasks
+declare -A ${Maps[*]} Conditions
 CurrentGroup=''
 CurrentTask=''

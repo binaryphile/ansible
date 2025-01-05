@@ -19,5 +19,5 @@ group taskgroup; {
 return 2>/dev/null
 set -eu
 
-main $*
+main
 summarize

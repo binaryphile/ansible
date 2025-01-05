@@ -27,7 +27,7 @@ main() {
   "
 }
 
-group system {
+group system; {
   task aptUpdateAndUpgrade
   aptUpdateAndUpgrade() {
     sudo apt update -qq && sudo apt upgrade -y
@@ -41,57 +41,63 @@ group system {
 
   task createRequiredDirectories
   createRequiredDirectories() {
-    mkdir -p "
+    local dirs=(
       .config/liquidprompt
       .config/nixpkgs
       .config/ranger
       .local/share/nvim/site/autoload
-    "
+    )
+    mkdir -p ${dirs[*]}
   }
 
-  task setUpSSHDirectory
+  task setUpSSHDirectory mkdir -m 700 $HOME/.ssh
+  ok '[[ -d $HOME/.ssh ]]'
 }
 
 
-group dotfiles
+group dotfiles; {
   task cloneDotfilesRepository git clone https://github.com/binaryphile/dotfiles.git $HOME/dotfiles
-    ok '[[ -e $HOME/dotfiles ]]'
+  ok '[[ -e $HOME/dotfiles ]]'
 
-  task linkContextFile
+  task linkContextFile ln -s contexts/work/crostini-bullseye $HOME/dotfiles/context
+  ok '[[ -e $HOME/dotfiles/context ]]'
 
   task createDotfileSymlinks
-    createDotfileSymlinks() {
-      local links=(
-        '[src]=bash/init.bash               [path]=.profile'
-        '[src]=bash/init.bash               [path]=.bash_profile'
-        '[src]=bash/init.bash               [path]=.bashrc'
-        '[src]=gitconfig                    [path]=.gitconfig'
-        '[src]=liquidprompt/liquid.theme    [path]=.config/liquidprompt/liquid.theme'
-        '[src]=liquidprompt/liquidpromptrc  [path]=.config/liquidpromptrc'
-        '[src]=ssh/config                   [path]=.ssh/config'
-        '[src]=tmux.conf                    [path]=.tmux.conf'
-        '[src]=ranger/rc.conf               [path]=.config/ranger/rc.conf'
-      )
+  createDotfileSymlinks() {
+    local links=(
+      '[src]=bash/init.bash               [path]=.profile'
+      '[src]=bash/init.bash               [path]=.bash_profile'
+      '[src]=bash/init.bash               [path]=.bashrc'
+      '[src]=gitconfig                    [path]=.gitconfig'
+      '[src]=liquidprompt/liquid.theme    [path]=.config/liquidprompt/liquid.theme'
+      '[src]=liquidprompt/liquidpromptrc  [path]=.config/liquidpromptrc'
+      '[src]=ssh/config                   [path]=.ssh/config'
+      '[src]=tmux.conf                    [path]=.tmux.conf'
+      '[src]=ranger/rc.conf               [path]=.config/ranger/rc.conf'
+    )
 
-      local link
-      for link in "${links[@]}"; do
-        local -A link="($link)" # expand value to associative array
-        ln -sf $HOME/dotfiles/${link[src]} $HOME/${link[path]}
-      done
-    }
+    local link
+    for link in ${links[*]}; do
+      local -A link="($link)" # expand value to associative array
+      ln -sf $HOME/dotfiles/${link[src]} $HOME/${link[path]}
+    done
+  }
+}
 
 
-group nix
+group nix; {
   task installNix
-    ok '[[ -e /nix/var/nix/profiles/default/bin/nix-env ]]'
-    installNix() {
-      curl -sSf -L https://install.lix.systems/lix | sh -s -- install --no-confirm
-    }
+  ok '[[ -e /nix/var/nix/profiles/default/bin/nix-env ]]'
+  installNix() {
+    curl -sSf -L https://install.lix.systems/lix | sh -s -- install --no-confirm
+    PATH+=:/nix/var/nix/profiles/default/bin
+  }
 
   task addHomeManagerChannel nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
   ok '[[ -e $HOME/.nix-channels ]]'
 
-  task updateNixChannels
+  task updateNixChannels nix-channel --update
+  ok '[[ -e $HOME/.nix-defexpr/channels/home-manager ]]'
 
   task installHomeManager nix-shell '<home-manager>' -A install
   ok '[[ -e $HOME/.config/home-manager ]]'
@@ -111,6 +117,7 @@ group nix
   }
 
   task applyHomeManagerConfiguration bash -lc 'home-manager switch'
+}
 
 return 2>/dev/null
 set -eu
