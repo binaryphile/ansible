@@ -1,5 +1,6 @@
 IFS=$'\n'
 set -o noglob
+set -o nounset
 
 # _def is the default implementation of the def function.
 # The user calls the default implementation when they define the task using def. The default
@@ -8,7 +9,7 @@ set -o noglob
 _def() {
   local arg command running=1
   for arg in "$@"; do
-    if [[ arg == '$1' ]]; then
+    if [[ $arg == '$1' ]]; then
       running=0
     else
       printf -v arg %q $arg
@@ -32,19 +33,20 @@ loop() {
   done
 }
 
-Task=''                 # the current task
-declare -A Conditions   # conditions telling when a task is satisfied
+declare -A Conditions  # conditions telling when a task is satisfied
+# Task='' # removed so unset task triggers nounset
 
 # ok adds a condition to Conditions.
 ok() { Conditions[$Task]=$1; }
 
 declare -A Ok=()            # tasks that were already satisfied
-declare -A Changed=()       # tasks that were run
+declare -A Changed=()       # tasks that succeeded
 declare -A Failed=()        # tasks that failed
 Maps=( Ok Changed Failed )  # names of the maps included in the summary
 
-# run runs def after checking that it is not already satisfied and reports the result.
+# run runs def after checking that it is not already satisfied and records the result.
 # When done, it resets def to the default implementation.
+# Task must be set externally already.
 run() {
   local suffix=${1:+ - }${1:-}
   [[ -v Conditions[$Task] ]] && eval ${Conditions[$Task]} && {
