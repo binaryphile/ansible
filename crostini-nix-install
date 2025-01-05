@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 
-taskBash=$(curl -s https://raw.githubusercontent.com/binaryphile/ansible/main/task.bash) || exit
-eval "$taskBash"
-unset -v taskBash
+[[ -e task.bash ]]
+case $? in
+  0 ) source task.bash;;
+  * )
+    taskBash=$(curl -s https://raw.githubusercontent.com/binaryphile/ansible/main/task.bash) || exit
+    eval "$taskBash"
+    unset -v taskBash
+    ;;
+esac
 
 main() {
   system

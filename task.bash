@@ -6,7 +6,11 @@ declare -A Conditions
 ok() { Conditions[$Task]=$1; }
 
 Maps=( Ok Changed Failed )
-declare -A ${Maps[*]}
+for map in ${Maps[*]}; do
+  declare -A "$map=()"
+done
+unset -v map
+
 run() {
   [[ -v Conditions[$Task] ]] && {
     eval ${Conditions[$Task]} && {
@@ -36,7 +40,7 @@ summarize() {
 
   for m in ${Maps[*]}; do
     local -n map=$m
-    echo "${map,}: ${#map[*]}"
+    echo "${m,}: ${#map[*]}"
   done
 }
 
