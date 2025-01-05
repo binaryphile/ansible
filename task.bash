@@ -37,15 +37,17 @@ run() {
     }
   }
 
-  ( def $* ) # notice parens for subshell
-  case $? in
+  local rc
+  output=$( def $* ) && eval ${Conditions[$Task]} && rc=$? || rc=$?
+  case $rc in
     0 )
-      echo "[$Task] changed$suffix"
       Changed[$Task]=1
+      echo "[$Task] changed$suffix"
       ;;
     * )
-      echo "[$Task] failed$suffix"
       Failed[$Task]=1
+      echo "[$Task] failed$suffix"
+      echo "$output"
       ;;
   esac
   eval "$Def"
