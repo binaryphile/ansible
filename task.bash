@@ -6,29 +6,28 @@ group() {
 }
 
 ok() {
-  local key=$CurrentGroup${CurrentGroup:+-}$CurrentTask
+  local key=$CurrentGroup${CurrentGroup:+.}$CurrentTask
   Conditions[$key]=$1
 }
 
 run() {
-  local tasklist
   local group=''
   case $# in
-    1 ) tasklist=$1;;
+    1 ) local -a tasks="($1)";;
     2 )
       group=$1
-      tasklist=$2
+      local -a tasks="($2)"
       ;;
   esac
 
-  [[ $group != '' ]] && echo -e "\ngroup $group"
+  [[ $group != '' ]] && echo -e "\n[group $group]"
 
   local task
-  for task in $tasklist; do
-    local key=$group${group:+-}$task
+  for task in ${tasks[*]}; do
+    local key=$group${group:+.}$task
     [[ -v Conditions[$key] ]] && {
-      eval "${Conditions[$key]}" && {
-        echo "[$task] ok"
+      eval ${Conditions[$key]} && {
+        echo "[$key] ok"
         Ok[$key]=1
         break
       }
@@ -37,11 +36,11 @@ run() {
     eval "${Tasks[$key]}"
     case $? in
       0 )
-        echo "[$task] changed"
+        echo "[$key] changed"
         Changed[$key]=1
         ;;
       * )
-        echo "[$task] failed"
+        echo "[$key] failed"
         Failed[$key]=1
         ;;
     esac
@@ -61,7 +60,7 @@ summarize() {
 task() {
   CurrentTask=$1
   (( $# > 1 )) && shift
-  local key=$CurrentGroup${CurrentGroup:+-}$CurrentTask
+  local key=$CurrentGroup${CurrentGroup:+.}$CurrentTask
   printf -v Tasks[$key] '%q ' "$@"
 }
 
