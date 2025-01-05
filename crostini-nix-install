@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
-taskBash=$(curl -s https://raw.githubusercontent.com/binaryphile/ansible/main/task.bash) || exit 1
+taskBash=$(curl -s https://raw.githubusercontent.com/binaryphile/ansible/main/task.bash) || exit
 eval "$taskBash"
+unset -v taskBash
 
 main() {
   run system "
