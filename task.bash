@@ -9,11 +9,12 @@ ok() {
 
 run() {
   local group=''
+  local tasks=()
   case $# in
-    1 ) local -a tasks="($1)";;
+    1 ) local -a tasks="( $1 )";;
     2 )
       group=$1
-      local -a tasks="($2)"
+      local -a tasks="( $2 )"
       ;;
   esac
 

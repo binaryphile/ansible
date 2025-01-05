@@ -5,16 +5,16 @@ source "$Here"/task.bash
 
 main() {
   run mytask
-  run taskgroup "
-    grouptask
-  "
+  run taskgroup '
+    othertask
+  '
 }
 
-task mytask echo 'hello task!'
+task mytask echo 'hello from mytask!'
 
 group taskgroup
 {
-  task grouptask echo 'hello grouptask!'
+  task othertask echo 'hello from othertask!'
 }
 
 return 2>/dev/null
