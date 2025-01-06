@@ -24,8 +24,7 @@ system() {
 
   task 'turn off motd'
   ok '[[ $(<$HOME/.local/share/cros-motd) == 5 ]]'
-  def "echo 5 >$HOME/.local/share/cros-motd"
-  run
+  def 'echo 5 >$HOME/.local/share/cros-motd'
 
   task 'create required directories'
   ok '[[ -e $1 ]]'
@@ -72,10 +71,8 @@ dotfiles() {
 nix() {
   task 'install nix'
   ok '[[ -e /nix/var/nix/profiles/default/bin/nix-env ]]'
-  def() {
-    curl -sSf -L https://install.lix.systems/lix | sh -s -- install --no-confirm
-  }
-  run
+  def 'curl -sSf -L https://install.lix.systems/lix | sh -s -- install --no-confirm'
+
   PATH+=:/nix/var/nix/profiles/default/bin
 
   task 'add home manager channel'
