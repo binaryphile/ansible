@@ -51,7 +51,6 @@ run() {
   [[ $condition != '' ]] && eval $condition && {
     Ok[$task]=1
     echo -e "[ok]\t\t$task"
-    _resetdef
 
     return
   }
