@@ -16,19 +16,20 @@ main() {
 
 system() {
   task 'apt update and upgrade'
-  def() {
-    sudo apt update -qq && sudo apt upgrade -y
-  }
-  run
+  become root
+  def <<'  END'
+    apt update -qq
+    apt upgrade -y
+  END
 
   task 'turn off motd'
   ok '[[ $(<$HOME/.local/share/cros-motd) == 5 ]]'
-  def() {
-    echo 5 >$HOME/.local/share/cros-motd
-  }
+  def "echo 5 >$HOME/.local/share/cros-motd"
   run
 
-  task 'create required directories' mkdir -pm 755 $HOME/'$1' <<'  END'
+  task 'create required directories'
+  ok '[[ -e $1 ]]'
+  def mkdir -pm 755 $HOME/'$1' <<'  END'
     .config/liquidprompt
     .config/nixpkgs
     .config/ranger
@@ -50,6 +51,7 @@ dotfiles() {
   def ln -s contexts/work/crostini-bullseye $HOME/dotfiles/context
 
   task 'create dotfile symlinks'
+  ok 'local -A link="$( $1 )"; [[ -e $HOME/${link[path]} ]]'
   def() {
     local -A link="( $1 )" # expand value to associative array
     ln -sf $HOME/dotfiles/${link[src]} $HOME/${link[path]}
@@ -87,11 +89,13 @@ nix() {
   task 'install home manager'
   ok '[[ -e $HOME/.config/home-manager ]]'
   def nix-shell '<home-manager>' -A install
+
   set +u
   source $HOME/.nix-profile/etc/profile.d/hm-session-vars.sh
   set -u
 
   task 'create nix configuration symlinks'
+  ok 'local -A link="( $1 )"; [[ -e $HOME/.config/${link[path]} ]]'
   def() {
     local -A link="( $1 )" # expand value to associative array
     ln -sf $HOME/dotfiles/${link[src]} $HOME/.config/${link[path]}
@@ -101,12 +105,7 @@ nix() {
     [src]=config.nix  [path]=nixpkgs/config.nix
   END
 
-  task 'apply home manager configuration'
-  def() {
-
-    home-manager switch
-  }
-  run
+  task 'apply home manager configuration' home-manager switch
 }
 
 return 2>/dev/null
