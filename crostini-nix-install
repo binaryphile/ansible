@@ -3,7 +3,7 @@
 if [[ -e task.bash ]]; then
   source ./task.bash
 else
-  taskBash=$(curl -s https://raw.githubusercontent.com/binaryphile/ansible/main/task.bash) || exit
+  taskBash=$(curl -fsSL https://raw.githubusercontent.com/binaryphile/ansible/main/task.bash) || exit
   eval "$taskBash"
   unset -v taskBash
 fi
