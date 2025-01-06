@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
 
-[[ -e task.bash ]]
-case $? in
-  0 ) source task.bash;;
-  * )
-    taskBash=$(curl -s https://raw.githubusercontent.com/binaryphile/ansible/main/task.bash) || exit
-    eval "$taskBash"
-    unset -v taskBash
-    ;;
+if [[ -e task.bash ]]; then
+  source ./task.bash
+else
+  taskBash=$(curl -s https://raw.githubusercontent.com/binaryphile/ansible/main/task.bash) || exit
+  eval "$taskBash"
+  unset -v taskBash
 esac
 
 main() {
@@ -30,12 +28,12 @@ system() {
   }
   run
 
-  task 'create required directories' mkdir -pm 755 $HOME/'$1' <<<'
+  task 'create required directories' mkdir -pm 755 $HOME/'$1' <<'  END'
     .config/liquidprompt
     .config/nixpkgs
     .config/ranger
     .local/share/nvim/site/autoload
-  '
+  END
 
   task 'set up ssh directory'
   ok '[[ -d $HOME/.ssh ]]'
@@ -56,7 +54,7 @@ dotfiles() {
     local -A link="( $1 )" # expand value to associative array
     ln -sf $HOME/dotfiles/${link[src]} $HOME/${link[path]}
   }
-  loop '
+  loop <<'  END'
     [src]=bash/init.bash               [path]=.profile
     [src]=bash/init.bash               [path]=.bash_profile
     [src]=bash/init.bash               [path]=.bashrc
@@ -66,7 +64,7 @@ dotfiles() {
     [src]=ssh/config                   [path]=.ssh/config
     [src]=tmux.conf                    [path]=.tmux.conf
     [src]=ranger/rc.conf               [path]=.config/ranger/rc.conf
-  '
+  END
 }
 
 nix() {
@@ -95,10 +93,10 @@ nix() {
     local -A link="( $1 )" # expand value to associative array
     ln -sf $HOME/dotfiles/${link[src]} $HOME/.config/${link[path]}
   }
-  loop '
+  loop <<'  END'
     [src]=home.nix    [path]=home-manager/home.nix
     [src]=config.nix  [path]=nixpkgs/config.nix
-  '
+  END
 
   task 'apply home manager configuration'
   def() {
