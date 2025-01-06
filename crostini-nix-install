@@ -100,6 +100,7 @@ nix() {
 
   task 'apply home manager configuration'
   def() {
+    set +u
     source $HOME/.nix-profile/etc/profile.d/hm-session-vars.sh
     home-manager switch
   }
