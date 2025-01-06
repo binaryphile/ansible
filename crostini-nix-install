@@ -6,7 +6,7 @@ else
   taskBash=$(curl -s https://raw.githubusercontent.com/binaryphile/ansible/main/task.bash) || exit
   eval "$taskBash"
   unset -v taskBash
-esac
+fi
 
 main() {
   section system
