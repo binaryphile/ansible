@@ -9,7 +9,7 @@ set -o nounset
 _def() {
   local arg command running=1
   for arg in "$@"; do
-    if [[ $arg == '$1' ]]; then
+    if [[ $arg == *'$1'* ]]; then
       running=0
     else
       printf -v arg %q $arg
@@ -48,28 +48,25 @@ Maps=( Ok Changed Failed )  # names of the maps included in the summary
 # When done, it resets def to the default implementation.
 # Task must be set externally already.
 run() {
-  local suffix=${1:+ - }${1:-}
-  [[ -v Conditions[$Task] ]] && eval ${Conditions[$Task]} && {
+  local condition=${Conditions[$Task]:-}
+  Task=$Task${1:+ - }${1:-}
+  [[ $condition != '' ]] && eval $condition && {
     Ok[$Task]=1
-    echo -e "[ok]\t\t$Task$suffix"
+    echo -e "[ok]\t\t$Task"
     _resetdef
 
     return
   }
 
-  local output rc
-  output=$( def $* 2>&1 ) && eval ${Conditions[$Task]:-} && rc=$? || rc=$?
-  case $rc in
-    0 )
-      Changed[$Task]=1
-      echo -e "[changed]\t$Task$suffix"
-      ;;
-    * )
-      Failed[$Task]=1
-      echo -e "[failed]\t$Task$suffix"
-      echo "$output"
-      ;;
-  esac
+  local output
+  if output=$( def $* 2>&1 ) && eval $condition; then
+    Changed[$Task]=1
+    echo -e "[changed]\t$Task"
+  else
+    Failed[$Task]=1
+    echo -e "[failed]\t$Task"
+    echo "$output"
+  fi
   _resetdef
 }
 
