@@ -32,7 +32,7 @@ loop() {
   done
 }
 
-declare -A Conditions  # conditions telling when a task is satisfied
+declare -A Conditions=()  # conditions telling when a task is satisfied
 # Task='' # removed so unset task triggers nounset
 
 # ok adds a condition to Conditions.
