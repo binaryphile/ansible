@@ -77,6 +77,7 @@ section() {
 summarize() {
   echo -e "\nsummary\n-------"
 
+  local m
   for m in ${Maps[*]}; do
     local -n map=$m
     echo "${m,}: ${#map[*]}"
