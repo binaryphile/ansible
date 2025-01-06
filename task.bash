@@ -24,7 +24,6 @@ _def() {
 _resetdef() {
   def() { _def "$@"; }
 }
-_resetdef
 
 # loop runs def indirectly by looping through stdin inputs and calling run.
 loop() {
@@ -45,7 +44,6 @@ declare -A Failed=()        # tasks that failed
 Maps=( Ok Changed Failed )  # names of the maps included in the summary
 
 # run runs def after checking that it is not already satisfied and records the result.
-# When done, it resets def to the default implementation.
 # Task must be set externally already.
 run() {
   local condition=${Conditions[$Task]:-}
@@ -67,7 +65,6 @@ run() {
     echo -e "[failed]\t$task"
     echo "$output"
   fi
-  _resetdef
 }
 
 # section announces the section name and runs the named section function.
@@ -88,7 +85,9 @@ summarize() {
 
 # task defines the current task and, if given other arguments, creates a task and runs it.
 # Tasks can loop if they include a '$1' argument and get fed items via stdin.
+# It resets def if it isn't given a command in arguments.
 task() {
+  _resetdef
   Task=$1
   (( $# == 1 )) && return
   shift
