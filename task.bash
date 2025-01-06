@@ -49,10 +49,10 @@ Maps=( Ok Changed Failed )  # names of the maps included in the summary
 # Task must be set externally already.
 run() {
   local condition=${Conditions[$Task]:-}
-  Task=$Task${1:+ - }${1:-}
+  local task=$Task${1:+ - }${1:-}
   [[ $condition != '' ]] && eval $condition && {
-    Ok[$Task]=1
-    echo -e "[ok]\t\t$Task"
+    Ok[$task]=1
+    echo -e "[ok]\t\t$task"
     _resetdef
 
     return
@@ -60,11 +60,11 @@ run() {
 
   local output
   if output=$( def $* 2>&1 ) && eval $condition; then
-    Changed[$Task]=1
-    echo -e "[changed]\t$Task"
+    Changed[$task]=1
+    echo -e "[changed]\t$task"
   else
-    Failed[$Task]=1
-    echo -e "[failed]\t$Task"
+    Failed[$task]=1
+    echo -e "[failed]\t$task"
     echo "$output"
   fi
   _resetdef
