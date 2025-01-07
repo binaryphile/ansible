@@ -37,10 +37,6 @@ _loop_commands() {
   while IFS=$' \t\n' read -r line; do
     eval "def:() { $line; }"
     run
-    (( Stop )) && {
-      echo -e '[stopped]\tfailure encountered. remaining subtasks, if any, were not run'
-      return
-    }
   done
 }
 
@@ -66,18 +62,21 @@ run() {
     return
   }
 
-  local command=( def: )
-  [[ $Become != '' ]] && command=( sudo -u $Become bash -c "$(declare -f def:); def:" )
+  local command
+  [[ $Become == '' ]] && 
+    command=( def: $* ) ||
+    command=( sudo -u $Become bash -c "$(declare -f def:); def: $*" )
 
-  local output
-  if output=$( ${command[*]} $* 2>&1 ) && eval $condition; then
+  local output rc
+  output=$( ${command[*]} 2>&1 ) && rc=$? || rc=$?
+  if $rc && eval $condition; then
     Changed[$task]=1
     echo -e "[changed]\t$task"
   else
     Failed[$task]=1
-    Stop=1
     echo -e "[failed]\t$task"
     echo "$output"
+    exit 1
   fi
 }
 
@@ -104,7 +103,6 @@ summarize() {
 task:() {
   Task=$1
   Become=''
-  Stop=0
   unset -v Conditions[$Task]
   def:() { _def "$@"; }
 
