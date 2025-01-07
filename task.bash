@@ -1,6 +1,8 @@
-IFS=$'\n'
-set -o noglob
-set -o nounset
+IFS=$'\n' # disable word splitting for most whitespace - this is required
+set -uf   # error on unset variable references and turn off globbing - globbing off is required
+
+# auto turns off auto-conditions
+auto:() { [[ $1 == off ]] && Auto=0 || Auto=1 }
 
 # become tells the task to run under sudo as user $1
 become:() { Become=$1; }
@@ -10,19 +12,15 @@ become:() { Become=$1; }
 # implementation accepts a task as arguments and redefines def to run that command, running
 # it indirectly by then calling run, or loop if there is a '$1' argument in the task.
 Def() {
-  (( $# == 0 )) && { LoopCommands; return; }
-
-  (( $# == 1 )) && {
+  (( $# == 0 )) && { LoopCommands; return; } # if no arguments, the inputs are commands
+  (( $# == 1 )) && {                         # if one argument, treat it as a quoted script
     eval "def:() { $1; }"
     [[ $1 == *'$1'* ]] && loop || run
 
     return
   }
 
-  case $1 in
-    ln ) Condition="[[ -e $4 ]]"
-  esac
-
+  # otherwise compose a simple command from the arguments
   local command
   printf -v command '%q ' "$@"
   eval "def:() { $command; }"
@@ -32,25 +30,25 @@ Def() {
 # loop runs def indirectly by looping through stdin and
 # feeding each line to `run` as an argument.
 loop() {
-  while IFS=$' \t\n' read -r line; do
+  while IFS=$' \t' read -r line; do
     run $line
   done
 }
 
 # LoopCommands runs each line of input as its own task.
 LoopCommands() {
-  while IFS=$' \t\n' read -r line; do
+  while IFS=$' \t' read -r line; do
     eval "def:() { $line; }"
     run $line
   done
 }
 
 # ok adds sets the ok condition.
-ok:() { Condition=$1; }
+ok:() { Auto=0; Condition=$1; }
 
 # progress tells the task to show output as it goes.
 # We want to see task progression on long-running tasks.
-progress:() { ShowProgress=1; }
+progress:() { [[ $1 == on ]] && ShowProgress=1 || ShowProgress=0; }
 
 declare -A Ok=()            # tasks that were already satisfied
 declare -A Changed=()       # tasks that succeeded
@@ -58,6 +56,7 @@ declare -A Changed=()       # tasks that succeeded
 # run runs def after checking that it is not already satisfied and records the result.
 # Task must be set externally already.
 run() {
+  (( Auto )) && SetAutoCondition $*
   local task=$Task${1:+ - }${1:-}
   [[ $Condition != '' ]] && eval $Condition && {
     Ok[$task]=1
@@ -103,24 +102,33 @@ section() {
   $1
 }
 
+# SetAutoCondition examines the task for commands that we can automatically set a condition for.
+SetAutoCondition() {
+  local first second third fourth rest
+  while IFS=$' \t' read -r first second third fourth rest; do
+    case $first in
+      ln|mkdir ) Condition="[[ -e $fourth ]]";;
+    esac
+  done <<<$(declare -f def:)
+}
+
 # strict toggles strict mode for word splitting, globbing, unset variables and error on exit.
 # It is used to set expectations properly for third-party code you may need to source.
 # "off" turns it off, anything else turns it on.
-# It should only be used within a function, such as a section, rather than in the global scope.
+# It should not be used in the global scope, only when in a function like main or a section.
+# We reset this on every task.
+# While the script starts by setting strict mode, it leaves out exit on error,
+# which *is* covered here.
 strict() {
   [[ $1 == off ]] && {
     IFS=$' \t\n'
-    set +o noglob
-    set +o nounset
-    set +o errexit
+    set +euf
 
     return
   }
 
   IFS=$'\n'
-  set -o noglob
-  set -o nounset
-  set -o errexit
+  set -euf
 }
 
 # summarize is run by the user at the end to report the results.
@@ -143,6 +151,7 @@ task:() {
   # reset strict, shared variables and the def function
   strict on
 
+  Auto=1
   Become=''
   Condition=''
   Output=''
