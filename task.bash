@@ -66,8 +66,11 @@ run() {
     return
   }
 
-  local output sudo=( ${Become:+sudo} ${Become:+-u} ${Become:-} )
-  if output=$( ${sudo[*]} def: $* 2>&1 ) && eval $condition; then
+  local command=( def: )
+  (( $Become != '' )) && command=( sudo -u $Become bash -c "$(declare -f def:); def:" )
+
+  local output
+  if output=$( ${command[*]} $* 2>&1 ) && eval $condition; then
     Changed[$task]=1
     echo -e "[changed]\t$task"
   else
