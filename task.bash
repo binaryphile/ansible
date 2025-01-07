@@ -14,28 +14,24 @@ _def() {
     return
   }
 
-  local arg command running=1
+  local arg command looping=0
   for arg in "$@"; do
     if [[ $arg == *'$1'* ]]; then
-      running=0
+      looping=1
     else
       printf -v arg %q $arg
     fi
     command+="$arg "
   done
   eval "def:() { $command; }"
-  (( running )) && run || loop
+  (( looping )) && loop || run
 }
 
-Become=''  # The user for sudoing.  If blank, sudo is not used.
-
-# become tells the task to run under sudo
+# become tells the task to run under sudo as user $1
 become:() { Become=$1; }
 
 # loop runs def indirectly by looping through stdin and
 # feeding each line to `run` as an argument.
-# If called with an argument, such as "commands",
-# the inputs are instead tasks rather than arguments.
 loop() {
   while IFS=$' \t\n' read -r line; do
     run $line
@@ -55,11 +51,6 @@ declare -A Conditions=()  # conditions telling when a task is satisfied
 # ok adds a condition to Conditions.
 ok:() { Conditions[$Task]=$1; }
 
-# _resetdef makes _def available as def.
-_resetdef() {
-  def:() { _def "$@"; }
-}
-
 declare -A Ok=()            # tasks that were already satisfied
 declare -A Changed=()       # tasks that succeeded
 declare -A Failed=()        # tasks that failed
@@ -77,8 +68,8 @@ run() {
     return
   }
 
-  local output sudo=${Become:+sudo -u }$Become
-  if output=$( $sudo def: $* 2>&1 ) && eval $condition; then
+  local output sudo=( ${Become:+sudo} ${Become:+-u} ${Become:-} )
+  if output=$( ${sudo[*]} def: $* 2>&1 ) && eval $condition; then
     Changed[$task]=1
     echo -e "[changed]\t$task"
   else
@@ -109,9 +100,11 @@ summarize() {
 # Tasks can loop if they include a '$1' argument and get fed items via stdin.
 # It resets def if it isn't given a command in arguments.
 task:() {
-  _resetdef
-  Become=''
   Task=$1
+  Become=''
+  unset -v Conditions[$Task]
+  def:() { _def "$@"; }
+
   (( $# == 1 )) && return
   shift
 
