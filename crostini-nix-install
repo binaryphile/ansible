@@ -46,9 +46,10 @@ dotfiles() {
 }
 
 nix() {
-  task: 'install nix'
-  ok:   '[[ -e /nix/var/nix/profiles/default/bin/nix-env ]]'
-  def:  'curl -sSf -L https://install.lix.systems/lix | sh -s -- install --no-confirm'
+  task:     'install nix'
+  progress: true
+  ok:       '[[ -e /nix/var/nix/profiles/default/bin/nix-env ]]'
+  def:      'curl -sSf -L https://install.lix.systems/lix | sh -s -- install --no-confirm'
 
   PATH+=:/nix/var/nix/profiles/default/bin
 
@@ -56,26 +57,28 @@ nix() {
   ok:   '[[ -e $HOME/.nix-channels ]]'
   def:  nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
 
-  task: 'update nix channels'
-  ok:   '[[ -e $HOME/.nix-defexpr/channels/home-manager ]]'
-  def:  nix-channel --update
+  task:     'update nix channels'
+  progress: true
+  ok:       '[[ -e $HOME/.nix-defexpr/channels/home-manager ]]'
+  def:      nix-channel --update
 
-  task: 'install home manager'
-  ok:   '[[ -e $HOME/.config/home-manager ]]'
-  def:  nix-shell '<home-manager>' -A install
+  task:     'install home manager'
+  progress: true
+  ok:       '[[ -e $HOME/.config/home-manager ]]'
+  def:      nix-shell '<home-manager>' -A install
 
-  set +u
+  strict off
   source $HOME/.nix-profile/etc/profile.d/hm-session-vars.sh
-  set -u
+  strict on
 
   task: 'create nix configuration symlinks' 'local -A l="($1)"; ln -sf $HOME/dotfiles/${l[src]} $HOME/.config/${l[path]}' <<'  END'
     [src]=home.nix    [path]=home-manager/home.nix
     [src]=config.nix  [path]=nixpkgs/config.nix
   END
 
-  task: 'apply home manager configuration'
-  out: true
-  def: home-manager switch
+  task:     'apply home manager configuration'
+  progress: true
+  def:      home-manager switch
 }
 
 if [[ -e task.bash ]]; then

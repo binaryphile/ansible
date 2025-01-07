@@ -97,6 +97,26 @@ section() {
   $1
 }
 
+# strict toggles strict mode for word splitting, globbing, unset variables and error on exit.
+# It is used to set expectations properly for third-party code you may need to source.
+# "off" turns it off, anything else turns it on.
+# It should only be used within a function, such as a section, rather than in the global scope.
+strict() {
+  [[ $1 == off ]] && {
+    IFS=$' \t\n'
+    set +o noglob
+    set +o nounset
+    set +o errexit
+
+    return
+  }
+
+  IFS=$'\n'
+  set -o noglob
+  set -o nounset
+  set -o errexit
+}
+
 # summarize is run by the user at the end to report the results.
 summarize() {
 cat <<END
