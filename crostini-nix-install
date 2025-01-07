@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 system() {
-  task: 'set up ssh directory'   mkdir -pm 700 $HOME/.ssh
+  task: 'set up ssh directory'   mkdir -m 700 $HOME/.ssh
   task: 'turn off motd'          'echo 5 >$HOME/.local/share/cros-motd'
 
-  task: 'create required directories' 'mkdir -pm 755 $HOME/$1' <<'  END'
+  task: 'create required directories' 'mkdir -m 755 $HOME/$1' <<'  END'
     .config/liquidprompt
     .config/nixpkgs
     .config/ranger
@@ -20,13 +20,13 @@ system() {
 }
 
 dotfiles() {
-  task: 'link context file' ln -sfT contexts/work/crostini-bullseye $HOME/dotfiles/context
+  task: 'link context directory' ln -sfT contexts/work/crostini-bullseye $HOME/dotfiles/context
 
   task: 'clone dotfiles repository'
   ok:   '[[ -e $HOME/dotfiles ]]'
   def:  git clone https://github.com/binaryphile/dotfiles.git $HOME/dotfiles
 
-  task: 'create dotfile symlinks' 'local -A l="($1)"; ln -sf $HOME/dotfiles/${l[src]} $HOME/${l[path]}' <<'  END'
+  keytask: 'create dotfile symlinks' 'ln -sf $HOME/dotfiles/$src $HOME/$path' <<'  END'
     [src]=bash/init.bash               [path]=.profile
     [src]=bash/init.bash               [path]=.bash_profile
     [src]=bash/init.bash               [path]=.bashrc
@@ -40,10 +40,10 @@ dotfiles() {
 }
 
 nix() {
-  task:     'install nix'
-  progress: true
-  ok:       '[[ -e /nix/var/nix/profiles/default/bin/nix-env ]]'
-  def:      'curl -sSf -L https://install.lix.systems/lix | sh -s -- install --no-confirm'
+  task: 'install nix'
+  prog: on
+  ok:   '[[ -e /nix/var/nix/profiles/default/bin/nix-env ]]'
+  def:  'curl -sSf -L https://install.lix.systems/lix | sh -s -- install --no-confirm'
 
   PATH+=:/nix/var/nix/profiles/default/bin
 
@@ -51,27 +51,27 @@ nix() {
   ok:   '[[ -e $HOME/.nix-channels ]]'
   def:  nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
 
-  task:     'update nix channels'
-  progress: true
-  ok:       '[[ -e $HOME/.nix-defexpr/channels/home-manager ]]'
-  def:      nix-channel --update
+  task: 'update nix channels'
+  prog: on
+  ok:   '[[ -e $HOME/.nix-defexpr/channels/home-manager ]]'
+  def:  nix-channel --update
 
-  task:     'install home manager'
-  progress: true
-  ok:       '[[ -e $HOME/.config/home-manager ]]'
-  def:      nix-shell '<home-manager>' -A install
+  task: 'install home manager'
+  prog: on
+  ok:   '[[ -e $HOME/.config/home-manager ]]'
+  def:  nix-shell '<home-manager>' -A install
 
   strict off  # next task re-enables strict
   source $HOME/.nix-profile/etc/profile.d/hm-session-vars.sh
 
-  task: 'create nix configuration symlinks' 'local -A l="($1)"; ln -sf $HOME/dotfiles/${l[src]} $HOME/.config/${l[path]}' <<'  END'
+  keytask: 'create nix configuration symlinks' 'ln -sf $HOME/dotfiles/$src $HOME/.config/$path' <<'  END'
     [src]=home.nix    [path]=home-manager/home.nix
     [src]=config.nix  [path]=nixpkgs/config.nix
   END
 
-  task:     'apply home manager configuration'
-  progress: true
-  def:      home-manager switch
+  task:  'apply home manager configuration'
+  unchg: 'No change so reusing latest profile generation'
+  def:   home-manager switch
 }
 
 main() {

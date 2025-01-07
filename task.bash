@@ -2,10 +2,25 @@ IFS=$'\n' # disable word splitting for most whitespace - this is required
 set -uf   # error on unset variable references and turn off globbing - globbing off is required
 
 # auto turns off auto-conditions
-auto:() { [[ $1 == off ]] && Auto=0 || Auto=1 }
+auto:() { [[ $1 == off ]] && AutoCheck=0; :; } # avoid returning error
 
 # become tells the task to run under sudo as user $1
-become:() { Become=$1; }
+become:() { BecomeUser=$1; }
+
+Keyed=0  # whether the loop inputs are key, value pairs
+
+# CheckForAutoCondition examines the task for commands that we can automatically set a condition for.
+CheckForAutoCondition() {
+  local prefix='' first second third fourth rest
+  (( Keyed )) && prefix='eval "$(GetVariables $*)"; '
+
+  while IFS=$' \t' read -r first second third fourth rest; do
+    case $first in
+      ln    ) Condition="$prefix[[ -e $fourth ]]"; return;;
+      mkdir ) Condition="$prefix[[ -e $fourth ]]"; return;;
+    esac
+  done <<<$(declare -f def:)
+}
 
 # Def is the default implementation of `def:`.
 # The user calls the default implementation when they define the task using `def:`. The default
@@ -13,9 +28,12 @@ become:() { Become=$1; }
 # it indirectly by then calling run, or loop if there is a '$1' argument in the task.
 Def() {
   (( $# == 0 )) && { LoopCommands; return; } # if no arguments, the inputs are commands
-  (( $# == 1 )) && {                         # if one argument, treat it as a quoted script
-    eval "def:() { $1; }"
-    [[ $1 == *'$1'* ]] && loop || run
+ 
+  # if one argument, treat it as arbitrary quoted bash and handle keytask variables
+  (( $# == 1 )) && {
+    eval 'def:() { eval "$(GetVariables $*)"; '$1'; }'
+
+    [[ $Keyed == 1 || $1 == *'$1'* ]] && loop || run
 
     return
   }
@@ -26,6 +44,20 @@ Def() {
   eval "def:() { $command; }"
   run
 }
+
+# GetVariables returns an eval-ready set of variables from the key, value input.
+GetVariables() {
+  local -A values="( $* )"  # trick to expand to associative array
+  local name
+  for name in ${!values[*]}; do
+    printf 'local %s=%q\n' $name ${values[$name]}
+  done
+}
+
+# keytask defines a task that loops with key, value pairs from stdin.
+# values are made available to the task as variables of the key name.
+# key, value pairs have bash associative array syntax minus the parentheses.
+keytask:() { Keyed=1; task: "$@"; Keyed=0; }
 
 # loop runs def indirectly by looping through stdin and
 # feeding each line to `run` as an argument.
@@ -43,12 +75,12 @@ LoopCommands() {
   done
 }
 
-# ok adds sets the ok condition.
-ok:() { Auto=0; Condition=$1; }
+# ok sets the ok condition for the current task.
+ok:() { AutoCheck=0; Condition=$1; }
 
-# progress tells the task to show output as it goes.
+# prog tells the task to show output as it goes.
 # We want to see task progression on long-running tasks.
-progress:() { [[ $1 == on ]] && ShowProgress=1 || ShowProgress=0; }
+prog:() { [[ $1 == on ]] && ShowProgress=1; :; }  # avoid returning error
 
 declare -A Ok=()            # tasks that were already satisfied
 declare -A Changed=()       # tasks that succeeded
@@ -56,21 +88,30 @@ declare -A Changed=()       # tasks that succeeded
 # run runs def after checking that it is not already satisfied and records the result.
 # Task must be set externally already.
 run() {
-  (( Auto )) && SetAutoCondition $*
+  (( AutoCheck )) && CheckForAutoCondition
+  
   local task=$Task${1:+ - }${1:-}
-  [[ $Condition != '' ]] && eval $Condition && {
+  [[ $Condition != '' ]] && ( eval $Condition ) && {
     Ok[$task]=1
     echo -e "[ok]\t\t$task"
 
     return
   }
 
-  if RunCommand $* && eval $Condition; then
+  ! (( ShowProgress )) && echo -e "[begin]\t\t$task"
+
+  local rc
+  RunCommand $* && rc=$? || rc=$?
+
+  if [[ $UnchangedText != '' && $Output == *"$UnchangedText"* ]]; then
+    Ok[$task]=1
+    echo -e "[ok]\t\t$task"
+  elif (( rc == 0 )) && ( eval $Condition ); then
     Changed[$task]=1
     echo -e "[changed]\t$task"
   else
     echo -e "[failed]\t$task"
-    [[ $Output != '' ]] && echo -e "[output:]\n$Output\n"
+    ! (( ShowProgress)) && echo -e "[output:]\n$Output\n"
     echo '[stopped due to failure]'
     (( rc == 0 )) && echo '[condition not met]'
     exit $rc
@@ -81,13 +122,13 @@ run() {
 # We cheat and refer to the task from the outer scope, so this can only be run by `run`.
 RunCommand() {
   local command
-  [[ $Become == '' ]] &&
+  [[ $BecomeUser == '' ]] &&
     command=( def: $* ) ||
-    command=( sudo -u $Become bash -c "$(declare -f def:); def: $*" )
+    command=( sudo -u $BecomeUser bash -c "$(declare -f def:); def: $*" )
 
   (( ShowProgress )) && {
     echo -e "[progress]\t$task"
-    "${command[@]}"
+    Output=$( "${command[@]}" | tee /dev/tty )
 
     return
   }
@@ -102,16 +143,6 @@ section() {
   $1
 }
 
-# SetAutoCondition examines the task for commands that we can automatically set a condition for.
-SetAutoCondition() {
-  local first second third fourth rest
-  while IFS=$' \t' read -r first second third fourth rest; do
-    case $first in
-      ln|mkdir ) Condition="[[ -e $fourth ]]";;
-    esac
-  done <<<$(declare -f def:)
-}
-
 # strict toggles strict mode for word splitting, globbing, unset variables and error on exit.
 # It is used to set expectations properly for third-party code you may need to source.
 # "off" turns it off, anything else turns it on.
@@ -120,15 +151,13 @@ SetAutoCondition() {
 # While the script starts by setting strict mode, it leaves out exit on error,
 # which *is* covered here.
 strict() {
-  [[ $1 == off ]] && {
+  if [[ $1 == off ]]; then
     IFS=$' \t\n'
     set +euf
-
-    return
-  }
-
-  IFS=$'\n'
-  set -euf
+  else
+    IFS=$'\n'
+    set -euf
+  fi
 }
 
 # summarize is run by the user at the end to report the results.
@@ -147,15 +176,15 @@ END
 task:() {
   Task=$1
 
-
   # reset strict, shared variables and the def function
   strict on
 
-  Auto=1
-  Become=''
+  AutoCheck=1
+  BecomeUser=''
   Condition=''
   Output=''
   ShowProgress=0
+  UnchangedText=''
 
   def:() { Def "$@"; }
 
@@ -164,3 +193,7 @@ task:() {
 
   def: "$@"
 }
+
+# unchg defines the text to look for in command output to see that nothing changed.
+# Such tasks get marked ok.
+unchg:() { UnchangedText=$1; }
