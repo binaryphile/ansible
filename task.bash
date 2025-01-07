@@ -45,7 +45,6 @@ ok:() { Condition=$1; }
 
 declare -A Ok=()            # tasks that were already satisfied
 declare -A Changed=()       # tasks that succeeded
-Maps=( Ok Changed )  # names of the maps included in the summary
 
 # run runs def after checking that it is not already satisfied and records the result.
 # Task must be set externally already.
@@ -70,8 +69,9 @@ run() {
     echo -e "[changed]\t$task"
   else
     echo -e "[failed]\t$task"
-    echo -e "[output]:\n$output"
+    echo -e "[output:]\n$output"
     echo -e "\n[stopped due to failure]"
+    (( rc == 0 )) && echo '[condition not met]'
     exit $rc
   fi
 }
@@ -82,15 +82,15 @@ section() {
   $1
 }
 
-# summarize is run by the user at the end to report the results by examining the maps.
+# summarize is run by the user at the end to report the results.
 summarize() {
-  echo -e '\nsummary\n-------'
+cat <<END
+summary
+-------
 
-  local m
-  for m in ${Maps[*]}; do
-    local -n map=$m
-    echo "${m,}: ${#map[*]}"
-  done
+ok:      ${#Ok[*]}
+changed: ${#Changed[*]}
+END
 }
 
 # task defines the current task and, if given other arguments, creates a task and runs it.
