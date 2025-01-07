@@ -1,13 +1,5 @@
 #!/usr/bin/env bash
 
-if [[ -e task.bash ]]; then
-  source ./task.bash
-else
-  taskBash=$(curl -fsSL https://raw.githubusercontent.com/binaryphile/ansible/main/task.bash) || exit
-  eval "$taskBash"
-  unset -v taskBash
-fi
-
 main() {
   section system
   section dotfiles
@@ -39,7 +31,7 @@ dotfiles() {
   ok:   '[[ -e $HOME/dotfiles ]]'
   def:  git clone https://github.com/binaryphile/dotfiles.git $HOME/dotfiles
 
-  task: 'link context file' ln -sf contexts/work/crostini-bullseye $HOME/dotfiles/context
+  task: 'link context file' ln -sfT contexts/work/crostini-bullseye $HOME/dotfiles/context
 
   task: 'create dotfile symlinks' 'local -A l="($1)"; ln -sf $HOME/dotfiles/${l[src]} $HOME/${l[path]}' <<'  END'
     [src]=bash/init.bash               [path]=.profile
@@ -84,6 +76,14 @@ nix() {
 
   task: 'apply home manager configuration' home-manager switch
 }
+
+if [[ -e task.bash ]]; then
+  source ./task.bash
+else
+  task=$(curl -fsSL https://raw.githubusercontent.com/binaryphile/ansible/main/task.bash) || exit
+  eval "$task"
+  unset -v task
+fi
 
 return 2>/dev/null
 set -eu
