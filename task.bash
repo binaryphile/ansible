@@ -5,18 +5,23 @@ set -o nounset
 # become tells the task to run under sudo as user $1
 become:() { Become=$1; }
 
-# _def is the default implementation of the def function.
-# The user calls the default implementation when they define the task using def. The default
+# Def is the default implementation of `def:`.
+# The user calls the default implementation when they define the task using `def:`. The default
 # implementation accepts a task as arguments and redefines def to run that command, running
 # it indirectly by then calling run, or loop if there is a '$1' argument in the task.
-_def() {
-  (( $# == 0 )) && { _loop_commands; return; }
+Def() {
+  (( $# == 0 )) && { LoopCommands; return; }
+
   (( $# == 1 )) && {
     eval "def:() { $1; }"
     [[ $1 == *'$1'* ]] && loop || run
 
     return
   }
+
+  case $1 in
+    ln ) Condition="[[ -e $4 ]]"
+  esac
 
   local command
   printf -v command '%q ' "$@"
@@ -32,8 +37,8 @@ loop() {
   done
 }
 
-# loop_commands runs each line of input as its own task.
-_loop_commands() {
+# LoopCommands runs each line of input as its own task.
+LoopCommands() {
   while IFS=$' \t\n' read -r line; do
     eval "def:() { $line; }"
     run $line
@@ -61,7 +66,7 @@ run() {
     return
   }
 
-  if _run_command $* && eval $Condition; then
+  if RunCommand $* && eval $Condition; then
     Changed[$task]=1
     echo -e "[changed]\t$task"
   else
@@ -73,9 +78,9 @@ run() {
   fi
 }
 
-# _run_command runs def and captures the output, optionally showing progress.
+# RunCommand runs def and captures the output, optionally showing progress.
 # We cheat and refer to the task from the outer scope, so this can only be run by `run`.
-_run_command() {
+RunCommand() {
   local command
   [[ $Become == '' ]] &&
     command=( def: $* ) ||
@@ -122,9 +127,7 @@ strict() {
 summarize() {
 cat <<END
 
-summary
--------
-
+[summary]
 ok:      ${#Ok[*]}
 changed: ${#Changed[*]}
 END
@@ -145,7 +148,7 @@ task:() {
   Output=''
   ShowProgress=0
 
-  def:() { _def "$@"; }
+  def:() { Def "$@"; }
 
   (( $# == 1 )) && return
   shift
