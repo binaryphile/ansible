@@ -2,6 +2,9 @@ IFS=$'\n'
 set -o noglob
 set -o nounset
 
+# become tells the task to run under sudo as user $1
+become:() { Become=$1; }
+
 # _def is the default implementation of the def function.
 # The user calls the default implementation when they define the task using def. The default
 # implementation accepts a task as arguments and redefines def to run that command, running
@@ -21,9 +24,6 @@ _def() {
   run
 }
 
-# become tells the task to run under sudo as user $1
-become:() { Become=$1; }
-
 # loop runs def indirectly by looping through stdin and
 # feeding each line to `run` as an argument.
 loop() {
@@ -36,7 +36,7 @@ loop() {
 _loop_commands() {
   while IFS=$' \t\n' read -r line; do
     eval "def:() { $line; }"
-    run
+    run $line
   done
 }
 
@@ -68,21 +68,22 @@ run() {
     command=( sudo -u $Become bash -c "$(declare -f def:); def: $*" )
 
   local output rc
-  output=$( ${command[*]} 2>&1 ) && rc=$? || rc=$?
-  if $rc && eval $condition; then
+  output=$( "${command[@]}" 2>&1 ) && rc=$? || rc=$?
+  if (( rc == 0 )) && eval $condition; then
     Changed[$task]=1
     echo -e "[changed]\t$task"
   else
     Failed[$task]=1
     echo -e "[failed]\t$task"
-    echo "$output"
-    exit 1
+    echo -e "[output]:\n$output"
+    echo -e "\n[stopped due to failure]"
+    exit $rc
   fi
 }
 
 # section announces the section name and runs the named section function.
 section() {
-  echo -e "\nSection $1"
+  echo -e "\n[section $1]"
   $1
 }
 
