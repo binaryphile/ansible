@@ -43,6 +43,10 @@ _loop_commands() {
 # ok adds sets the ok condition.
 ok:() { Condition=$1; }
 
+# progress tells the task to show output as it goes.
+# We want to see task progression on long-running tasks.
+progress:() { ShowProgress=1; }
+
 declare -A Ok=()            # tasks that were already satisfied
 declare -A Changed=()       # tasks that succeeded
 
@@ -57,24 +61,35 @@ run() {
     return
   }
 
-  local command
-  [[ $Become == '' ]] && 
-    command=( def: $* ) ||
-    command=( sudo -u $Become bash -c "$(declare -f def:); def: $*" )
-
-  local output rc
-  output=$( "${command[@]}" 2>&1 ) && rc=$? || rc=$?
-  if (( rc == 0 )) && eval $Condition; then
+  if _run_command $* && eval $Condition; then
     Changed[$task]=1
     echo -e "[changed]\t$task"
   else
     echo -e "[failed]\t$task"
-    echo -e "[output:]\n$output"
-    echo -e "\n[stopped due to failure]"
+    [[ $Output != '' ]] && echo -e "[output:]\n$Output\n"
+    echo '[stopped due to failure]'
     (( rc == 0 )) && echo '[condition not met]'
     exit $rc
   fi
 }
+
+# _run_command runs def and captures the output, optionally showing progress.
+_run_command() {
+  local command
+  [[ $Become == '' ]] &&
+    command=( def: $* ) ||
+    command=( sudo -u $Become bash -c "$(declare -f def:); def: $*" )
+
+  (( ShowProgress )) && {
+    echo -e '[showing progress]\t$task]'
+    "${command[@]}"
+
+    return
+  }
+
+  Output=$( "${command[@]}" 2>&1 )
+}
+
 
 # section announces the section name and runs the named section function.
 section() {
@@ -98,8 +113,13 @@ END
 # It resets def if it isn't given a command in arguments.
 task:() {
   Task=$1
+
+  # reset shared variables and the def function
   Become=''
   Condition=''
+  Output=''
+  ShowProgress=0
+
   def:() { _def "$@"; }
 
   (( $# == 1 )) && return

@@ -7,14 +7,8 @@ main() {
 }
 
 system() {
-  task:   'apt update and upgrade'
-  become: root
-  def:    <<'  END'
-    apt update -qq
-    apt upgrade -y
-  END
-
-  task: 'turn off motd' 'echo 5 >$HOME/.local/share/cros-motd'
+  task: 'set up ssh directory'   mkdir -pm 700 $HOME/.ssh
+  task: 'turn off motd'          'echo 5 >$HOME/.local/share/cros-motd'
 
   task: 'create required directories' 'mkdir -pm 755 $HOME/$1' <<'  END'
     .config/liquidprompt
@@ -23,15 +17,20 @@ system() {
     .local/share/nvim/site/autoload
   END
 
-  task: 'set up ssh directory' mkdir -pm 700 $HOME/.ssh
+  task:   'apt update and upgrade'
+  become: root
+  def:    <<'  END'
+    apt update -qq
+    apt upgrade -y
+  END
 }
 
 dotfiles() {
+  task: 'link context file' ln -sfT contexts/work/crostini-bullseye $HOME/dotfiles/context
+
   task: 'clone dotfiles repository'
   ok:   '[[ -e $HOME/dotfiles ]]'
   def:  git clone https://github.com/binaryphile/dotfiles.git $HOME/dotfiles
-
-  task: 'link context file' ln -sfT contexts/work/crostini-bullseye $HOME/dotfiles/context
 
   task: 'create dotfile symlinks' 'local -A l="($1)"; ln -sf $HOME/dotfiles/${l[src]} $HOME/${l[path]}' <<'  END'
     [src]=bash/init.bash               [path]=.profile
@@ -74,7 +73,9 @@ nix() {
     [src]=config.nix  [path]=nixpkgs/config.nix
   END
 
-  task: 'apply home manager configuration' home-manager switch
+  task: 'apply home manager configuration'
+  out: true
+  def: home-manager switch
 }
 
 if [[ -e task.bash ]]; then
