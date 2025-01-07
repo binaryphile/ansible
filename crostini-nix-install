@@ -37,19 +37,11 @@ system() {
 dotfiles() {
   task: 'clone dotfiles repository'
   ok:   '[[ -e $HOME/dotfiles ]]'
-  def: git clone https://github.com/binaryphile/dotfiles.git $HOME/dotfiles
+  def:  git clone https://github.com/binaryphile/dotfiles.git $HOME/dotfiles
 
-  task: 'link context file'
-  ok:   '[[ -e $HOME/dotfiles/context ]]'
-  def:  ln -s contexts/work/crostini-bullseye $HOME/dotfiles/context
+  task: 'link context file' ln -sf contexts/work/crostini-bullseye $HOME/dotfiles/context
 
-  task: 'create dotfile symlinks'
-  ok:   'local -A link="$( $1 )"; [[ -e $HOME/${link[path]} ]]'
-  def:() {
-    local -A link="( $1 )" # expand value to associative array
-    ln -sf $HOME/dotfiles/${link[src]} $HOME/${link[path]}
-  }
-  loop <<'  END'
+  task: 'create dotfile symlinks' 'local -A l="($1)"; ln -sf $HOME/dotfiles/${l[src]} $HOME/${l[path]}' <<'  END'
     [src]=bash/init.bash               [path]=.profile
     [src]=bash/init.bash               [path]=.bash_profile
     [src]=bash/init.bash               [path]=.bashrc
@@ -86,12 +78,8 @@ nix() {
   set -u
 
   task: 'create nix configuration symlinks'
-  ok:   'local -A link="( $1 )"; [[ -e $HOME/.config/${link[path]} ]]'
-  def:() {
-    local -A link="( $1 )" # expand value to associative array
-    ln -sf $HOME/dotfiles/${link[src]} $HOME/.config/${link[path]}
-  }
-  loop <<'  END'
+  ok:   'local -A l="($1)"; [[ -e $HOME/.config/${l[path]} ]]'
+  def:  'local -A l="($1)"; ln -sf $HOME/dotfiles/${l[src]} $HOME/.config/${l[path]}' <<'  END'
     [src]=home.nix    [path]=home-manager/home.nix
     [src]=config.nix  [path]=nixpkgs/config.nix
   END
