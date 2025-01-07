@@ -22,22 +22,16 @@ system() {
     apt upgrade -y
   END
 
-  task: 'turn off motd'
-  ok:   '[[ $(<$HOME/.local/share/cros-motd) == 5 ]]'
-  def:  'echo 5 >$HOME/.local/share/cros-motd'
+  task: 'turn off motd' 'echo 5 >$HOME/.local/share/cros-motd'
 
-  task: 'create required directories'
-  ok:   '[[ -e $1 ]]'
-  def:  mkdir -pm 755 $HOME/'$1' <<'  END'
+  task: 'create required directories' 'mkdir -pm 755 $HOME/$1' <<'  END'
     .config/liquidprompt
     .config/nixpkgs
     .config/ranger
     .local/share/nvim/site/autoload
   END
 
-  task: 'set up ssh directory'
-  ok:   '[[ -d $HOME/.ssh ]]'
-  def:  mkdir -m 700 $HOME/.ssh
+  task: 'set up ssh directory' mkdir -pm 700 $HOME/.ssh
 }
 
 dotfiles() {

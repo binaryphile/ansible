@@ -11,20 +11,14 @@ _def() {
   (( $# == 1 )) && {
     eval "def:() { $1; }"
     [[ $1 == *'$1'* ]] && loop || run
+
     return
   }
 
-  local arg command looping=0
-  for arg in "$@"; do
-    if [[ $arg == *'$1'* ]]; then
-      looping=1
-    else
-      printf -v arg %q $arg
-    fi
-    command+="$arg "
-  done
+  local command
+  printf -v command '%q ' "$@"
   eval "def:() { $command; }"
-  (( looping )) && loop || run
+  run
 }
 
 # become tells the task to run under sudo as user $1
@@ -43,6 +37,10 @@ _loop_commands() {
   while IFS=$' \t\n' read -r line; do
     eval "def:() { $line; }"
     run
+    (( Stop )) && {
+      echo -e '[stopped]\tfailure encountered. remaining subtasks, if any, were not run'
+      return
+    }
   done
 }
 
@@ -74,6 +72,7 @@ run() {
     echo -e "[changed]\t$task"
   else
     Failed[$task]=1
+    Stop=1
     echo -e "[failed]\t$task"
     echo "$output"
   fi
@@ -102,6 +101,7 @@ summarize() {
 task:() {
   Task=$1
   Become=''
+  Stop=0
   unset -v Conditions[$Task]
   def:() { _def "$@"; }
 
