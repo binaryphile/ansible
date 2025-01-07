@@ -7,6 +7,13 @@ set -o nounset
 # implementation accepts a task as arguments and redefines def to run that command, running
 # it indirectly by then calling run, or loop if there is a '$1' argument in the task.
 _def() {
+  (( $# == 0 )) && { _loop_commands; return; }
+  (( $# == 1 )) && {
+    eval "def:() { $1; }"
+    [[ $1 == *'$1'* ]] && loop || run
+    return
+  }
+
   local arg command running=1
   for arg in "$@"; do
     if [[ $arg == *'$1'* ]]; then
@@ -16,27 +23,42 @@ _def() {
     fi
     command+="$arg "
   done
-  eval "def() { $command; }"
+  eval "def:() { $command; }"
   (( running )) && run || loop
 }
 
-# _resetdef makes _def available as def.
-_resetdef() {
-  def() { _def "$@"; }
-}
+Become=''  # The user for sudoing.  If blank, sudo is not used.
 
-# loop runs def indirectly by looping through stdin inputs and calling run.
+# become tells the task to run under sudo
+become:() { Become=$1; }
+
+# loop runs def indirectly by looping through stdin and
+# feeding each line to `run` as an argument.
+# If called with an argument, such as "commands",
+# the inputs are instead tasks rather than arguments.
 loop() {
   while IFS=$' \t\n' read -r line; do
     run $line
   done
 }
 
+# loop_commands runs each line of input as its own task.
+_loop_commands() {
+  while IFS=$' \t\n' read -r line; do
+    eval "def:() { $line; }"
+    run
+  done
+}
+
 declare -A Conditions=()  # conditions telling when a task is satisfied
-# Task='' # removed so unset task triggers nounset
 
 # ok adds a condition to Conditions.
-ok() { Conditions[$Task]=$1; }
+ok:() { Conditions[$Task]=$1; }
+
+# _resetdef makes _def available as def.
+_resetdef() {
+  def:() { _def "$@"; }
+}
 
 declare -A Ok=()            # tasks that were already satisfied
 declare -A Changed=()       # tasks that succeeded
@@ -55,8 +77,8 @@ run() {
     return
   }
 
-  local output
-  if output=$( def $* 2>&1 ) && eval $condition; then
+  local output sudo=${Become:+sudo -u }$Become
+  if output=$( $sudo def: $* 2>&1 ) && eval $condition; then
     Changed[$task]=1
     echo -e "[changed]\t$task"
   else
@@ -74,7 +96,7 @@ section() {
 
 # summarize is run by the user at the end to report the results by examining the maps.
 summarize() {
-  echo -e "\nsummary\n-------"
+  echo -e '\nsummary\n-------'
 
   local m
   for m in ${Maps[*]}; do
@@ -86,11 +108,12 @@ summarize() {
 # task defines the current task and, if given other arguments, creates a task and runs it.
 # Tasks can loop if they include a '$1' argument and get fed items via stdin.
 # It resets def if it isn't given a command in arguments.
-task() {
+task:() {
   _resetdef
+  Become=''
   Task=$1
   (( $# == 1 )) && return
   shift
 
-  def "$@"
+  def: "$@"
 }
