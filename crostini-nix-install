@@ -77,9 +77,7 @@ nix() {
   source $HOME/.nix-profile/etc/profile.d/hm-session-vars.sh
   set -u
 
-  task: 'create nix configuration symlinks'
-  ok:   'local -A l="($1)"; [[ -e $HOME/.config/${l[path]} ]]'
-  def:  'local -A l="($1)"; ln -sf $HOME/dotfiles/${l[src]} $HOME/.config/${l[path]}' <<'  END'
+  task: 'create nix configuration symlinks' 'local -A l="($1)"; ln -sf $HOME/dotfiles/${l[src]} $HOME/.config/${l[path]}' <<'  END'
     [src]=home.nix    [path]=home-manager/home.nix
     [src]=config.nix  [path]=nixpkgs/config.nix
   END
