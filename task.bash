@@ -45,8 +45,7 @@ ok:() { Condition=$1; }
 
 declare -A Ok=()            # tasks that were already satisfied
 declare -A Changed=()       # tasks that succeeded
-declare -A Failed=()        # tasks that failed
-Maps=( Ok Changed Failed )  # names of the maps included in the summary
+Maps=( Ok Changed )  # names of the maps included in the summary
 
 # run runs def after checking that it is not already satisfied and records the result.
 # Task must be set externally already.
@@ -70,7 +69,6 @@ run() {
     Changed[$task]=1
     echo -e "[changed]\t$task"
   else
-    Failed[$task]=1
     echo -e "[failed]\t$task"
     echo -e "[output]:\n$output"
     echo -e "\n[stopped due to failure]"
