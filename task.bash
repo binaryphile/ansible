@@ -67,7 +67,7 @@ run() {
   }
 
   local command=( def: )
-  (( $Become != '' )) && command=( sudo -u $Become bash -c "$(declare -f def:); def:" )
+  [[ $Become != '' ]] && command=( sudo -u $Become bash -c "$(declare -f def:); def:" )
 
   local output
   if output=$( ${command[*]} $* 2>&1 ) && eval $condition; then
