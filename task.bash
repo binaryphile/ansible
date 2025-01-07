@@ -40,10 +40,8 @@ _loop_commands() {
   done
 }
 
-declare -A Conditions=()  # conditions telling when a task is satisfied
-
-# ok adds a condition to Conditions.
-ok:() { Conditions[$Task]=$1; }
+# ok adds sets the ok condition.
+ok:() { Condition=$1; }
 
 declare -A Ok=()            # tasks that were already satisfied
 declare -A Changed=()       # tasks that succeeded
@@ -53,9 +51,8 @@ Maps=( Ok Changed Failed )  # names of the maps included in the summary
 # run runs def after checking that it is not already satisfied and records the result.
 # Task must be set externally already.
 run() {
-  local condition=${Conditions[$Task]:-}
   local task=$Task${1:+ - }${1:-}
-  [[ $condition != '' ]] && eval $condition && {
+  [[ $Condition != '' ]] && eval $Condition && {
     Ok[$task]=1
     echo -e "[ok]\t\t$task"
 
@@ -69,7 +66,7 @@ run() {
 
   local output rc
   output=$( "${command[@]}" 2>&1 ) && rc=$? || rc=$?
-  if (( rc == 0 )) && eval $condition; then
+  if (( rc == 0 )) && eval $Condition; then
     Changed[$task]=1
     echo -e "[changed]\t$task"
   else
@@ -104,7 +101,7 @@ summarize() {
 task:() {
   Task=$1
   Become=''
-  unset -v Conditions[$Task]
+  Condition=''
   def:() { _def "$@"; }
 
   (( $# == 1 )) && return
