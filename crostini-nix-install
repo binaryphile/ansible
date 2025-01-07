@@ -1,11 +1,5 @@
 #!/usr/bin/env bash
 
-main() {
-  section system
-  section dotfiles
-  section nix
-}
-
 system() {
   task: 'set up ssh directory'   mkdir -pm 700 $HOME/.ssh
   task: 'turn off motd'          'echo 5 >$HOME/.local/share/cros-motd'
@@ -67,9 +61,8 @@ nix() {
   ok:       '[[ -e $HOME/.config/home-manager ]]'
   def:      nix-shell '<home-manager>' -A install
 
-  strict off
+  strict off  # next task re-enables strict
   source $HOME/.nix-profile/etc/profile.d/hm-session-vars.sh
-  strict on
 
   task: 'create nix configuration symlinks' 'local -A l="($1)"; ln -sf $HOME/dotfiles/${l[src]} $HOME/.config/${l[path]}' <<'  END'
     [src]=home.nix    [path]=home-manager/home.nix
@@ -81,12 +74,18 @@ nix() {
   def:      home-manager switch
 }
 
+main() {
+  section system
+  section dotfiles
+  section nix
+}
+
 if [[ -e task.bash ]]; then
   source ./task.bash
 else
-  task=$(curl -fsSL https://raw.githubusercontent.com/binaryphile/ansible/main/task.bash) || exit
-  eval "$task"
-  unset -v task
+  lib=$(curl -fsSL https://raw.githubusercontent.com/binaryphile/ansible/main/task.bash) || exit
+  eval "$lib"
+  unset -v lib
 fi
 
 return 2>/dev/null

@@ -74,6 +74,7 @@ run() {
 }
 
 # _run_command runs def and captures the output, optionally showing progress.
+# We cheat and refer to the task from the outer scope, so this can only be run by `run`.
 _run_command() {
   local command
   [[ $Become == '' ]] &&
@@ -135,7 +136,10 @@ END
 task:() {
   Task=$1
 
-  # reset shared variables and the def function
+
+  # reset strict, shared variables and the def function
+  strict on
+
   Become=''
   Condition=''
   Output=''
