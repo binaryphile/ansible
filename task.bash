@@ -81,7 +81,7 @@ _run_command() {
     command=( sudo -u $Become bash -c "$(declare -f def:); def: $*" )
 
   (( ShowProgress )) && {
-    echo -e '[showing progress]\t$task]'
+    echo -e "[progress]\t$task"
     "${command[@]}"
 
     return
@@ -120,6 +120,7 @@ strict() {
 # summarize is run by the user at the end to report the results.
 summarize() {
 cat <<END
+
 summary
 -------
 
