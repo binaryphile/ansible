@@ -8,7 +8,6 @@ system() {
     .config/liquidprompt
     .config/nixpkgs
     .config/ranger
-    .local/share/nvim/site/autoload
   END
 
   task:   'apt update and upgrade'
@@ -74,10 +73,27 @@ nix() {
   def:   home-manager switch
 }
 
+neovim() {
+  task: 'clone vim configuration repository'
+  ok:   '[[ -e $HOME/.config/nvim ]]'
+  def(): {
+    git clone https://github.com/binaryphile/dot_vim $HOME/.config/nvim
+    cd $HOME/.config/nvim
+    git remote set-url origin git@github.com:binaryphile/dot_vim
+  }
+  run
+
+  task: 'install vim-plug plugin manager' <<'  END'
+    mkdir -m 755 $HOME/.local/share/nvim/site/autoload
+    curl -fsSL https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim >$HOME/.local/share/nvim/site/autoload/plug.vim
+  END
+}
+
 main() {
   section system
   section dotfiles
   section nix
+  section neovim
 }
 
 if [[ -e task.bash ]]; then

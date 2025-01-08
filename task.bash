@@ -9,17 +9,28 @@ become:() { BecomeUser=$1; }
 
 Keyed=0  # whether the loop inputs are key, value pairs
 
+declare -A AutoConditions=(
+  [ln]='[[ -e $2 ]]'
+  [mkdir]='[[ -e $2 ]]'
+  [curl]='[[ -e $2 ]]'
+)
+
 # CheckForAutoCondition examines the task for commands that we can automatically set a condition for.
 CheckForAutoCondition() {
   local prefix='' first second third fourth rest
   (( Keyed )) && prefix='eval "$(GetVariables $*)"; '
 
-  while IFS=$' \t' read -r first second third fourth rest; do
-    case $first in
-      ln    ) Condition="$prefix[[ -e $fourth ]]"; return;;
-      mkdir ) Condition="$prefix[[ -e $fourth ]]"; return;;
-    esac
-  done <<<$(declare -f def:)
+  local line lines fields
+  readarray -t lines <<<"$(declare -f def:)"
+
+  for line in ${lines[*]}; do
+    readarray -td ' ' fields <<<$line
+    [[ " ${!AutoConditions[*]} " != *" $1 "* ]] && return
+    for field in ${fields[*]}; do
+       [[ $field != -* ]] && set -- $* $field
+    done
+    Condition=$(eval ${AutoCondition[$1]})
+  done
 }
 
 # Def is the default implementation of `def:`.
