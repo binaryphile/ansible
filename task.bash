@@ -1,37 +1,10 @@
 IFS=$'\n' # disable word splitting for most whitespace - this is required
 set -uf   # error on unset variable references and turn off globbing - globbing off is required
 
-# auto turns off auto-conditions
-auto:() { [[ $1 == off ]] && AutoCheck=0; :; } # avoid returning error
-
 # become tells the task to run under sudo as user $1
 become:() { BecomeUser=$1; }
 
 Keyed=0  # whether the loop inputs are key, value pairs
-
-declare -A AutoConditions=(
-  [ln]='[[ -e $2 ]]'
-  [mkdir]='[[ -e $2 ]]'
-  [curl]='[[ -e $2 ]]'
-)
-
-# CheckForAutoCondition examines the task for commands that we can automatically set a condition for.
-CheckForAutoCondition() {
-  local prefix='' first second third fourth rest
-  (( Keyed )) && prefix='eval "$(GetVariables $*)"; '
-
-  local line lines fields
-  readarray -t lines <<<"$(declare -f def:)"
-
-  for line in ${lines[*]}; do
-    readarray -td ' ' fields <<<$line
-    [[ " ${!AutoConditions[*]} " != *" $1 "* ]] && return
-    for field in ${fields[*]}; do
-       [[ $field != -* ]] && set -- $* $field
-    done
-    Condition=$(eval ${AutoCondition[$1]})
-  done
-}
 
 # Def is the default implementation of `def:`.
 # The user calls the default implementation when they define the task using `def:`. The default
@@ -39,13 +12,16 @@ CheckForAutoCondition() {
 # it indirectly by then calling run, or loop if there is a '$1' argument in the task.
 Def() {
   (( $# == 0 )) && { LoopCommands; return; } # if no arguments, the inputs are commands
- 
+
   # if one argument, treat it as arbitrary quoted bash and handle keytask variables
   (( $# == 1 )) && {
-    eval 'def:() { eval "$(GetVariables $*)"; '$1'; }'
+    local prefix=''
+    (( Keyed )) && prefix='eval "$( GetVariables $* )"; '
+    eval "def:() { $prefix$1; }"
 
     [[ $Keyed == 1 || $1 == *'$1'* ]] && loop || run
 
+    Condition=''
     return
   }
 
@@ -54,6 +30,7 @@ Def() {
   printf -v command '%q ' "$@"
   eval "def:() { $command; }"
   run
+  Condition=''
 }
 
 # GetVariables returns an eval-ready set of variables from the key, value input.
@@ -63,6 +40,20 @@ GetVariables() {
   for name in ${!values[*]}; do
     printf 'local %s=%q\n' $name ${values[$name]}
   done
+}
+
+# InitTaskEnv initializes all relevant settings for a new task.
+InitTaskEnv() {
+  # reset strict, shared variables and the def function
+  strict on
+
+  BecomeUser=''             # the user to sudo with
+  Condition=''              # an expression to tell when the task is already satisfied
+  Output=''                 # output from the task, including stderr
+  ShowProgress=0            # flag for showing output as the task runs
+  UnchangedText=''          # text to test for in the output to see task didn't change anything (i.e. is ok)
+
+  def:() { Def "$@"; }
 }
 
 # keytask defines a task that loops with key, value pairs from stdin.
@@ -87,7 +78,7 @@ LoopCommands() {
 }
 
 # ok sets the ok condition for the current task.
-ok:() { AutoCheck=0; Condition=$1; }
+ok:() { Condition=$1; }
 
 # prog tells the task to show output as it goes.
 # We want to see task progression on long-running tasks.
@@ -99,17 +90,16 @@ declare -A Changed=()       # tasks that succeeded
 # run runs def after checking that it is not already satisfied and records the result.
 # Task must be set externally already.
 run() {
-  (( AutoCheck )) && CheckForAutoCondition
-  
   local task=$Task${1:+ - }${1:-}
   [[ $Condition != '' ]] && ( eval $Condition ) && {
     Ok[$task]=1
     echo -e "[ok]\t\t$task"
 
+    Condition=''
     return
   }
 
-  ! (( ShowProgress )) && echo -e "[begin]\t\t$task"
+  ! (( ShowProgress )) && (( $# == 0 )) && echo -e "[begin]\t\t$task"
 
   local rc
   RunCommand $* && rc=$? || rc=$?
@@ -124,9 +114,12 @@ run() {
     echo -e "[failed]\t$task"
     ! (( ShowProgress)) && echo -e "[output:]\n$Output\n"
     echo '[stopped due to failure]'
-    (( rc == 0 )) && echo '[condition not met]'
+    (( rc == 0 )) && echo '[task reported success but condition not met]'
+
     exit $rc
   fi
+
+  Condition=''
 }
 
 # RunCommand runs def and captures the output, optionally showing progress.
@@ -135,7 +128,7 @@ RunCommand() {
   local command
   [[ $BecomeUser == '' ]] &&
     command=( def: $* ) ||
-    command=( sudo -u $BecomeUser bash -c "$(declare -f def:); def: $*" )
+    command=( sudo -u $BecomeUser bash -c "$( declare -f def: ); def: $*" )
 
   (( ShowProgress )) && {
     echo -e "[progress]\t$task"
@@ -162,13 +155,16 @@ section() {
 # While the script starts by setting strict mode, it leaves out exit on error,
 # which *is* covered here.
 strict() {
-  if [[ $1 == off ]]; then
-    IFS=$' \t\n'
-    set +euf
-  else
-    IFS=$'\n'
-    set -euf
-  fi
+  case $1 in
+    off )
+      IFS=$' \t\n'
+      set +euf
+      ;;
+    on )
+      IFS=$'\n'
+      set -euf
+      ;;
+  esac
 }
 
 # summarize is run by the user at the end to report the results.
@@ -187,18 +183,7 @@ END
 task:() {
   Task=$1
 
-  # reset strict, shared variables and the def function
-  strict on
-
-  AutoCheck=1
-  BecomeUser=''
-  Condition=''
-  Output=''
-  ShowProgress=0
-  UnchangedText=''
-
-  def:() { Def "$@"; }
-
+  InitTaskEnv
   (( $# == 1 )) && return
   shift
 

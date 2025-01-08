@@ -1,10 +1,20 @@
 #!/usr/bin/env bash
 
-system() {
-  task: 'set up ssh directory'   mkdir -m 700 $HOME/.ssh
-  task: 'turn off motd'          'echo 5 >$HOME/.local/share/cros-motd'
+main() {
+  section system
+  section dotfiles
+  section nix
+  section neovim
+}
 
-  task: 'create required directories' 'mkdir -m 755 $HOME/$1' <<'  END'
+system() {
+  task: 'set up ssh directory' mkdir -pm700 $HOME/.ssh
+
+  task: 'turn off motd'
+  ok:   '[[ $(<$HOME/.local/share/cros-motd) == 5 ]]'
+  def:  'echo 5 >$HOME/.local/share/cros-motd'
+
+  task: 'create required directories' 'mkdir -pm755 $HOME/$1' <<'  END'
     .config/liquidprompt
     .config/nixpkgs
     .config/ranger
@@ -12,6 +22,7 @@ system() {
 
   task:   'apt update and upgrade'
   become: root
+  unchg:  '0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.'
   def:    <<'  END'
     apt update -qq
     apt upgrade -y
@@ -76,28 +87,23 @@ nix() {
 neovim() {
   task: 'clone vim configuration repository'
   ok:   '[[ -e $HOME/.config/nvim ]]'
-  def(): {
+  def:() {
     git clone https://github.com/binaryphile/dot_vim $HOME/.config/nvim
     cd $HOME/.config/nvim
     git remote set-url origin git@github.com:binaryphile/dot_vim
   }
   run
 
-  task: 'install vim-plug plugin manager' <<'  END'
-    mkdir -m 755 $HOME/.local/share/nvim/site/autoload
+  task: 'install vim-plug plugin manager'
+  def: <<'  END'
+    mkdir -pm755 $HOME/.local/share/nvim/site/autoload
     curl -fsSL https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim >$HOME/.local/share/nvim/site/autoload/plug.vim
   END
 }
 
-main() {
-  section system
-  section dotfiles
-  section nix
-  section neovim
-}
-
 if [[ -e task.bash ]]; then
   source ./task.bash
+  source ./auto.bash
 else
   lib=$(curl -fsSL https://raw.githubusercontent.com/binaryphile/ansible/main/task.bash) || exit
   eval "$lib"
@@ -107,7 +113,7 @@ fi
 return 2>/dev/null
 set -eu
 
-[[ ${1:-} == --trace ]] && { shift; set -x; }
+[[ ${1:-} == -x ]] && { shift; set -x; }
 
 main
 summarize
