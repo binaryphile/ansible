@@ -3,15 +3,14 @@
 # It can be enabled or disabled.
 auto:() { [[ $1 == off ]] && AutoCheck=0 || AutoCheck=1; }
 
-declare -A AutoConditions=(	# conditions for auto-detected commands
-  [ln]='echo "[[ -e $2 ]]"'       # the target path
-  [mkdir]='echo "[[ -e $1 ]]"'    # the directory
-  [curl]='echo "[[ -e ${2#<} ]]"' # the outfile
+declare -A AutoConditions=( # conditions for auto-detected commands
+  [ln]='[[ -e $2 ]]'       # the target path
+  [mkdir]='[[ -e $1 ]]'    # the directory
 )
 
 # CheckForAutoCondition examines the task for commands that we can automatically set a condition for.
 CheckForAutoCondition() {
-  (( Keyed )) && Condition='eval "$( GetVariables $* )"; '
+  (( Keyed )) && Condition='eval "$( GetVariables $* )"; ' || Condition=''
 
   local line lines
   ! read -rd '' -a lines <<<"$( declare -f def: )" # ! to avoid error
@@ -26,7 +25,9 @@ CheckForAutoCondition() {
        [[ $field != -* ]] && set -- $* $field
     done
 
-    Condition+=$( eval ${AutoConditions[${fields[0]}]} )
+    Condition+=$( eval 'echo "'${AutoConditions[${fields[0]}]}'"' )
+
+    break
   done
 }
 
@@ -38,6 +39,7 @@ InitTaskEnv() {
   AutoCheck=1               # flag to check for automatic conditions for known commands
   BecomeUser=''             # the user to sudo with
   Condition=''              # an expression to tell when the task is already satisfied
+  ConditionSet=0            # flag telling if the user set a condition so we can disable autoconditions on looped tasks when ok: specified
   Output=''                 # output from the task, including stderr
   ShowProgress=0            # flag for showing output as the task runs
   UnchangedText=''          # text to test for in the output to see task didn't change anything (i.e. is ok)
@@ -45,17 +47,18 @@ InitTaskEnv() {
   def:() { Def "$@"; }
 }
 
+# ok sets the ok condition for the current task.
+ok:() { ConditionSet=1; Condition=$1; }
+
 # run runs def after checking that it is not already satisfied and records the result.
 # Task must be set externally already.
 run() {
-  (( AutoCheck )) && [[ $Condition == '' ]] && CheckForAutoCondition
+  (( AutoCheck && ! ConditionSet )) && CheckForAutoCondition
 
   local task=$Task${1:+ - }${1:-}
   [[ $Condition != '' ]] && ( eval $Condition ) && {
     Ok[$task]=1
     echo -e "[ok]\t\t$task"
-
-    Condition=''
 
     return
   }
@@ -79,6 +82,4 @@ run() {
 
     exit $rc
   fi
-
-  Condition=''
 }

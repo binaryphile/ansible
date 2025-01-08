@@ -21,7 +21,6 @@ Def() {
 
     [[ $Keyed == 1 || $1 == *'$1'* ]] && loop || run
 
-    Condition=''
     return
   }
 
@@ -30,7 +29,6 @@ Def() {
   printf -v command '%q ' "$@"
   eval "def:() { $command; }"
   run
-  Condition=''
 }
 
 # GetVariables returns an eval-ready set of variables from the key, value input.
@@ -38,7 +36,7 @@ GetVariables() {
   local -A values="( $* )"  # trick to expand to associative array
   local name
   for name in ${!values[*]}; do
-    printf 'local %s=%q\n' $name ${values[$name]}
+    printf 'local %s=%q\n' $name "${values[$name]}"
   done
 }
 
@@ -82,7 +80,7 @@ ok:() { Condition=$1; }
 
 # prog tells the task to show output as it goes.
 # We want to see task progression on long-running tasks.
-prog:() { [[ $1 == on ]] && ShowProgress=1; :; }  # avoid returning error
+prog:() { [[ $1 == on ]] && ShowProgress=1 || ShowProgress=0; }
 
 declare -A Ok=()            # tasks that were already satisfied
 declare -A Changed=()       # tasks that succeeded
@@ -95,7 +93,6 @@ run() {
     Ok[$task]=1
     echo -e "[ok]\t\t$task"
 
-    Condition=''
     return
   }
 
@@ -118,8 +115,6 @@ run() {
 
     exit $rc
   fi
-
-  Condition=''
 }
 
 # RunCommand runs def and captures the output, optionally showing progress.
@@ -132,7 +127,7 @@ RunCommand() {
 
   (( ShowProgress )) && {
     echo -e "[progress]\t$task"
-    Output=$( "${command[@]}" | tee /dev/tty )
+    Output=$( "${command[@]}" 2>&1 | tee /dev/tty )
 
     return
   }

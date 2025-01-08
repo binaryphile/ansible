@@ -34,7 +34,12 @@ dotfiles() {
 
   task: 'clone dotfiles repository'
   ok:   '[[ -e $HOME/dotfiles ]]'
-  def:  git clone https://github.com/binaryphile/dotfiles.git $HOME/dotfiles
+  def:() {
+    git clone https://github.com/binaryphile/dotfiles $HOME/dotfiles
+    cd $HOME/dotfiles
+    git remote set-url origin git@github.com:binaryphile/dotfiles
+  }
+  run
 
   keytask: 'create dotfile symlinks' 'ln -sf $HOME/dotfiles/$src $HOME/$path' <<'  END'
     [src]=bash/init.bash               [path]=.profile
@@ -95,7 +100,8 @@ neovim() {
   run
 
   task: 'install vim-plug plugin manager'
-  def: <<'  END'
+  ok:   '[[ -e $HOME/.local/share/nvim/site/autoload/plug.vim ]]'
+  def:  <<'  END'
     mkdir -pm755 $HOME/.local/share/nvim/site/autoload
     curl -fsSL https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim >$HOME/.local/share/nvim/site/autoload/plug.vim
   END
@@ -103,7 +109,7 @@ neovim() {
 
 if [[ -e task.bash ]]; then
   source ./task.bash
-  source ./auto.bash
+  # source ./auto.bash
 else
   lib=$(curl -fsSL https://raw.githubusercontent.com/binaryphile/ansible/main/task.bash) || exit
   eval "$lib"
@@ -111,7 +117,7 @@ else
 fi
 
 return 2>/dev/null
-set -eu
+set -e
 
 [[ ${1:-} == -x ]] && { shift; set -x; }
 
