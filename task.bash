@@ -4,7 +4,7 @@ set -uf   # error on unset variable references and turn off globbing - globbing 
 # become tells the task to run under sudo as user $1
 become:() { BecomeUser=$1; }
 
-Keyed=0  # whether the loop inputs are key, value pairs
+IsKeyTask=0  # whether the loop inputs are key, value pairs
 
 # Def is the default implementation of `def:`.
 # The user calls the default implementation when they define the task using `def:`. The default
@@ -16,10 +16,10 @@ Def() {
   # if one argument, treat it as arbitrary quoted bash and handle keytask variables
   (( $# == 1 )) && {
     local prefix=''
-    (( Keyed )) && prefix='eval "$( GetVariables $* )"; '
+    (( IsKeyTask )) && prefix='eval "$( GetVariables $* )"; '
     eval "def:() { $prefix$1; }"
 
-    [[ $Keyed == 1 || $1 == *'$1'* ]] && loop || run
+    [[ $IsKeyTask == 1 || $1 == *'$1'* ]] && loop || run
 
     return
   }
@@ -57,7 +57,7 @@ InitTaskEnv() {
 # keytask defines a task that loops with key, value pairs from stdin.
 # values are made available to the task as variables of the key name.
 # key, value pairs have bash associative array syntax minus the parentheses.
-keytask:() { Keyed=1; task: "$@"; Keyed=0; }
+keytask:() { IsKeyTask=1; task: "$@"; IsKeyTask=0; }
 
 # loop runs def indirectly by looping through stdin and
 # feeding each line to `run` as an argument.
@@ -109,7 +109,7 @@ run() {
     echo -e "[changed]\t$task"
   else
     echo -e "[failed]\t$task"
-    ! (( ShowProgress)) && echo -e "[output:]\n$Output\n"
+    ! (( ShowProgress )) && echo -e "[output:]\n$Output\n"
     echo '[stopped due to failure]'
     (( rc == 0 )) && echo '[task reported success but condition not met]'
 
@@ -125,14 +125,10 @@ RunCommand() {
     command=( def: $* ) ||
     command=( sudo -u $BecomeUser bash -c "$( declare -f def: ); def: $*" )
 
-  (( ShowProgress )) && {
-    echo -e "[progress]\t$task"
-    Output=$( "${command[@]}" 2>&1 | tee /dev/tty )
+  ! (( ShowProgress )) && { Output=$( "${command[@]}" 2>&1 ); return; }
 
-    return
-  }
-
-  Output=$( "${command[@]}" 2>&1 )
+  echo -e "[progress]\t$task"
+  Output=$( "${command[@]}" 2>&1 | tee /dev/tty )
 }
 
 

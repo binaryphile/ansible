@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
 
-Here=$(cd "$(dirname "$BASH_SOURCE")"; cd -P "$(dirname "$(readlink "$BASH_SOURCE" || echo .)")"; pwd)
-source "$Here"/task.bash
+source ./task.bash
 
-task "set up ssh directory"
-ok '[[ -e $HOME/.ssh ]]'
-def mkdir -m 700 $HOME/.ssh
+task: 'say hello' echo 'Hello, World!'
 
-[[ ${1:=} == --trace ]] && { shift; set -x; }
 summarize

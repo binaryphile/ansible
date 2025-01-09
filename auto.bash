@@ -10,7 +10,7 @@ declare -A AutoConditions=( # conditions for auto-detected commands
 
 # CheckForAutoCondition examines the task for commands that we can automatically set a condition for.
 CheckForAutoCondition() {
-  (( Keyed )) && Condition='eval "$( GetVariables $* )"; ' || Condition=''
+  (( IsKeyTask )) && Condition='eval "$( GetVariables $* )"; ' || Condition=''
 
   local line lines
   ! read -rd '' -a lines <<<"$( declare -f def: )" # ! to avoid error
